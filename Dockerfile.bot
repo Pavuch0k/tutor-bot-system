@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Копируем файлы бота
 COPY bot.py .
-COPY .env .
+# .env файл будет передан через переменные окружения в docker-compose
 
 # Убеждаемся что скрипт имеет права на выполнение
 RUN chmod +x bot.py
