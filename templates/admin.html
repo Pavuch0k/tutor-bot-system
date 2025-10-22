@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Админ-панель</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .gradient-purple {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+
+        .gradient-red {
+            background: linear-gradient(-45deg, #b71c1c, #c62828, #d32f2f, #e53935);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            background-color: #1e1e1e;
+        }
+        .card {
+            background-color: #252526;
+            border-color: #333;
+        }
+        .card-header {
+            background-color: #333;
+            border-color: #333;
+            color: #d4d4d4;
+        }
+        .table {
+            color: #d4d4d4;
+        }
+        .table td, .table th {
+            border-color: #333;
+        }
+        .nav-tabs .nav-link {
+            color: #d4d4d4;
+        }
+        .nav-tabs .nav-link.active {
+            background-color: #252526;
+            border-color: #333;
+            color: #d4d4d4;
+        }
+        
+        /* Закрепление навигации вверху */
+        .nav-tabs-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background-color: #1e1e1e;
+            border-bottom: 1px solid #333;
+            padding: 10px 0;
+        }
+        
+        /* Отступ для контента под закрепленной навигацией */
+        .content-container {
+            margin-top: 80px;
+        }
+        
+        /* Вертикальная боковая панель */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 70px;
+            background-color: #252526;
+            border-right: 1px solid #333;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 40px;
+        }
+        
+        .sidebar-icon {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            background-color: transparent;
+            text-decoration: none;
+            color: #d4d4d4;
+        }
+        
+        .sidebar-icon:hover {
+            background-color: #3c3c3c;
+            transform: scale(1.1);
+            color: white;
+        }
+        
+        .sidebar-icon.active {
+            background-color: #6a1b9a;
+            box-shadow: 0 0 15px rgba(156, 39, 176, 0.4);
+            color: white;
+        }
+        
+        .sidebar-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+        
+        /* Отступ для основного контента */
+        .main-content {
+            margin-left: 70px;
+            margin-top: 20px;
+        }
+        
+        /* Отступ для содержимого вкладок */
+        .tab-pane {
+            padding-top: 40px;
+        }
+        .form-control, .form-select {
+            background-color: #3c3c3c;
+            border-color: #333;
+            color: #d4d4d4;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #3c3c3c;
+            border-color: #9c27b0;
+            color: #d4d4d4;
+        }
+        .list-group-item {
+            background-color: #252526;
+            border-color: #333;
+            color: #d4d4d4;
+        }
+        .list-group-item:hover {
+            background-color: #2d2d2d;
+        }
+        .modal-content {
+            background-color: #252526;
+            color: #d4d4d4;
+        }
+        .modal-header {
+            border-color: #333;
+        }
+        .modal-footer {
+            border-color: #333;
+        }
+        .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 300px;
+            background-color: #252526;
+            border-color: #333;
+            color: #d4d4d4;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .alert-success {
+            background-color: #1e3a1e;
+            border-color: #2d4d2d;
+        }
+        .calendar {
+            margin: 20px 0;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+        .calendar-day {
+            text-align: center;
+            padding: 10px;
+            border: 1px solid #333;
+            cursor: pointer;
+            background-color: #252526;
+            color: #d4d4d4;
+        }
+        .calendar-day:hover {
+            background-color: #2d2d2d;
+        }
+        @keyframes calendar-gradient {
+            0% {
+                background: linear-gradient(45deg, #6a1b9a, #9c27b0);
+                box-shadow: 0 0 5px rgba(156, 39, 176, 0.3);
+            }
+            50% {
+                background: linear-gradient(45deg, #9c27b0, #6a1b9a);
+                box-shadow: 0 0 8px rgba(156, 39, 176, 0.4);
+            }
+            100% {
+                background: linear-gradient(45deg, #6a1b9a, #9c27b0);
+                box-shadow: 0 0 5px rgba(156, 39, 176, 0.3);
+            }
+        }
+
+        @keyframes light-move {
+            0% {
+                background-position: 0% 0%;
+            }
+            25% {
+                background-position: 100% 0%;
+            }
+            50% {
+                background-position: 100% 100%;
+            }
+            75% {
+                background-position: 0% 100%;
+            }
+            100% {
+                background-position: 0% 0%;
+            }
+        }
+
+        .gradient-purple, .gradient-red, .btn-primary, .btn-danger, 
+        .btn-outline-primary:hover, .btn-outline-danger:hover,
+        .pair-link.active, .calendar-day.has-lesson {
+            background-color: #6a1b9a;
+            background-image: radial-gradient(circle at center, 
+                rgba(255, 255, 255, 0.2) 0%,
+                rgba(255, 255, 255, 0.1) 25%,
+                rgba(0, 0, 0, 0.1) 50%,
+                rgba(0, 0, 0, 0.2) 75%,
+                rgba(0, 0, 0, 0.1) 100%);
+            background-size: 200% 200%;
+            animation: light-move 24s ease-in-out infinite;
+        }
+
+        .gradient-red, .btn-danger, .btn-outline-danger:hover {
+            background-color: #b71c1c;
+        }
+
+        .calendar-day.has-lesson {
+            border: 1px solid rgba(156, 39, 176, 0.5);
+            color: white !important;
+            text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+            font-weight: 500;
+            transform: scale(1.02);
+            transition: all 0.3s ease;
+        }
+
+        .calendar-day.has-lesson:hover {
+            transform: scale(1.05);
+            z-index: 1;
+            box-shadow: 0 0 10px rgba(156, 39, 176, 0.4);
+        }
+        .calendar-day.today {
+            border: 2px solid #9c27b0;
+        }
+        .pair-link.active {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border-color: #9c27b0;
+            color: white;
+        }
+        .pair-link.active:hover {
+            background: linear-gradient(-45deg, #7b1fa2, #8e24aa, #6a1b9a, #9c27b0);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            color: white;
+        }
+        .btn-primary {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(-45deg, #7b1fa2, #8e24aa, #6a1b9a, #9c27b0);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+        }
+        .btn-danger {
+            background: linear-gradient(-45deg, #b71c1c, #c62828, #d32f2f, #e53935);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+        }
+        .btn-danger:hover {
+            background: linear-gradient(-45deg, #c62828, #d32f2f, #b71c1c, #e53935);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+        }
+        .btn-outline-primary {
+            color: #9c27b0;
+            border-color: #9c27b0;
+        }
+        .btn-outline-primary:hover {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+            color: white;
+        }
+        .btn-outline-danger {
+            color: #d32f2f;
+            border-color: #d32f2f;
+        }
+        .btn-outline-danger:hover {
+            background: linear-gradient(-45deg, #b71c1c, #c62828, #d32f2f, #e53935);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+            color: white;
+        }
+        @keyframes border-gradient {
+            0% { border-color: #6a1b9a; }
+            25% { border-color: #9c27b0; }
+            50% { border-color: #7b1fa2; }
+            75% { border-color: #8e24aa; }
+            100% { border-color: #6a1b9a; }
+        }
+
+        @keyframes border-gradient-red {
+            0% { border-color: #b71c1c; }
+            25% { border-color: #c62828; }
+            50% { border-color: #d32f2f; }
+            75% { border-color: #e53935; }
+            100% { border-color: #b71c1c; }
+        }
+
+        .btn-icon {
+            padding: 0.375rem 0.75rem;
+            font-size: 1.1rem;
+            line-height: 1;
+            border-radius: 0.25rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-width: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: radial-gradient(circle at center, 
+                rgba(255, 255, 255, 0.15) 0%,
+                rgba(255, 255, 255, 0.05) 30%,
+                rgba(0, 0, 0, 0.05) 60%,
+                rgba(0, 0, 0, 0.1) 80%,
+                rgba(0, 0, 0, 0.05) 100%);
+            background-size: 300% 300%;
+            animation: light-move 36s ease-in-out infinite;
+            z-index: 0;
+            opacity: 0.7;
+            mix-blend-mode: overlay;
+        }
+
+        .btn-icon.btn-outline-primary::before {
+            background-image: radial-gradient(circle at center, 
+                rgba(156, 39, 176, 0.2) 0%,
+                rgba(156, 39, 176, 0.1) 30%,
+                rgba(106, 27, 154, 0.05) 60%,
+                rgba(106, 27, 154, 0.1) 80%,
+                rgba(106, 27, 154, 0.05) 100%);
+        }
+
+        .btn-icon.btn-outline-danger::before {
+            background-image: radial-gradient(circle at center, 
+                rgba(183, 28, 28, 0.2) 0%,
+                rgba(183, 28, 28, 0.1) 30%,
+                rgba(198, 40, 40, 0.05) 60%,
+                rgba(198, 40, 40, 0.1) 80%,
+                rgba(198, 40, 40, 0.05) 100%);
+        }
+
+        .btn-icon i {
+            position: relative;
+            z-index: 1;
+            filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.2));
+        }
+    </style>
+</head>
+<body>
+    <!-- Вертикальная боковая панель -->
+    <div class="sidebar">
+        <a href="#" class="sidebar-icon active" onclick="switchTab('users')" title="Пользователи">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+        </a>
+        <a href="#" class="sidebar-icon" onclick="switchTab('pairs')" title="Пары">
+            <svg viewBox="0 0 24 24">
+                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+            </svg>
+        </a>
+        <a href="#" class="sidebar-icon" onclick="switchTab('schedule')" title="Расписание">
+            <svg viewBox="0 0 24 24">
+                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+            </svg>
+        </a>
+        <a href="#" class="sidebar-icon" onclick="switchTab('settings')" title="Настройки">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.65-.07-.97l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.88 2.28 14.5 2 14.12 2h-4c-.38 0-.76.28-.84.66l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.32-.07.65-.07.97 0 .33.03.65.07.97l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.08.38.46.66.84.66h4c.38 0 .76-.28.84-.66l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65z"/>
+            </svg>
+        </a>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <div class="tab-content" id="adminTabsContent">
+                        <!-- Вкладка пользователей -->
+                        <div class="tab-pane fade show active" id="users" role="tabpanel">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h4><i class="bi bi-person-plus me-2"></i>Создание пользователя</h4>
+                                </div>
+                                <div class="card-body">
+                                    <form method="POST" action="{{ url_for('add_telegram_id') }}">
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label for="status" class="form-label">Статус</label>
+                                                <select class="form-control" id="status" name="status" required onchange="toggleParentField()">
+                                                    <option value="">Выберите статус</option>
+                                                    <option value="репетитор">Репетитор</option>
+                                                    <option value="ученик">Ученик</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="description" class="form-label">Имя</label>
+                                                <input type="text" class="form-control" id="description" name="description" required>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label for="telegram_id" class="form-label">ID</label>
+                                                <input type="text" class="form-control" id="telegram_id" name="telegram_id" required oninput="addAtSymbol(this)">
+                                            </div>
+                                            <div class="col-md-6" id="parent_field" style="display: none;">
+                                                <label for="parent_id" class="form-label">ID родителя</label>
+                                                <input type="text" class="form-control" id="parent_id" name="parent_id" oninput="addAtSymbol(this)">
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="additional_description" class="form-label">Описание</label>
+                                            <textarea class="form-control" id="additional_description" name="additional_description" rows="3" placeholder="Дополнительная информация"></textarea>
+                                        </div>
+                                        <div class="d-flex justify-content-center">
+                                            <button type="submit" class="btn btn-primary w-100" style="font-size: 1.2rem;">
+                                                <i class="bi bi-plus-lg me-2"></i>Добавить
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4><i class="bi bi-people me-2"></i>Пользователи</h4>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Поиск и фильтры -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <input type="text" class="form-control" id="searchInput" placeholder="Поиск по любому значению..." onkeyup="filterUsers()">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <select class="form-select" id="statusFilter" onchange="filterUsers()">
+                                                <option value="">Все пользователи</option>
+                                                <option value="репетитор">Репетиторы</option>
+                                                <option value="ученик">Ученики</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <table class="table" id="usersTable">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Имя</th>
+                                                <th>Статус</th>
+                                                <th>Telegram</th>
+                                                <th>Описание</th>
+                                                <th>Действия</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in telegram_ids %}
+                                            <tr>
+                                                <td>{{ item.id }}</td>
+                                                <td>{{ item.description }}</td>
+                                                <td>{{ item.status }}</td>
+                                                <td>{{ item.telegram_id }}</td>
+                                                <td>{{ item.description }}</td>
+                                                <td>
+                                                    <button type="button" class="btn btn-icon btn-outline-primary me-2" 
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#editModal{{ item.id }}">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <a href="{{ url_for('delete_telegram_id', id=item.id) }}" 
+                                                       class="btn btn-icon btn-outline-danger"
+                                                       onclick="return confirm('Вы уверены, что хотите удалить этот ID?')">
+                                                        <i class="bi bi-trash"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+
+                                            <!-- Модальное окно для редактирования -->
+                                            <div class="modal fade" id="editModal{{ item.id }}" tabindex="-1">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">Редактировать запись</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <form method="POST" action="{{ url_for('edit_telegram_id', id=item.id) }}">
+                                                                <div class="row mb-3">
+                                                                    <div class="col-md-6">
+                                                                        <label for="edit_status{{ item.id }}" class="form-label">Статус</label>
+                                                                        <select class="form-control" id="edit_status{{ item.id }}" name="status" required onchange="toggleEditParentField({{ item.id }})">
+                                                                            <option value="репетитор" {% if item.status == 'репетитор' %}selected{% endif %}>Репетитор</option>
+                                                                            <option value="ученик" {% if item.status == 'ученик' %}selected{% endif %}>Ученик</option>
+                                                                        </select>
+                                                                    </div>
+                                                                    <div class="col-md-6">
+                                                                        <label for="edit_description{{ item.id }}" class="form-label">Имя</label>
+                                                                        <input type="text" class="form-control" id="edit_description{{ item.id }}" 
+                                                                               name="description" value="{{ item.description }}" required>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="row mb-3">
+                                                                    <div class="col-md-6">
+                                                                        <label for="edit_telegram_id{{ item.id }}" class="form-label">ID</label>
+                                                                        <input type="text" class="form-control" id="edit_telegram_id{{ item.id }}" 
+                                                                               name="telegram_id" value="{{ item.telegram_id }}" required oninput="addAtSymbol(this)">
+                                                                    </div>
+                                                                    <div class="col-md-6" id="edit_parent_field{{ item.id }}" style="display: {% if item.status == 'ученик' %}block{% else %}none{% endif %};">
+                                                                        <label for="edit_parent_id{{ item.id }}" class="form-label">ID родителя</label>
+                                                                        <input type="text" class="form-control" id="edit_parent_id{{ item.id }}" 
+                                                                               name="parent_id" value="{{ item.parent_id or '' }}" placeholder="Введите Telegram ID родителя" oninput="addAtSymbol(this)">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="mb-3">
+                                                                    <label for="edit_additional_description{{ item.id }}" class="form-label">Описание</label>
+                                                                    <textarea class="form-control" id="edit_additional_description{{ item.id }}" 
+                                                                              name="additional_description" rows="3" placeholder="Дополнительная информация">{{ item.additional_description or '' }}</textarea>
+                                                                </div>
+                                                                <button type="submit" class="btn btn-primary">Сохранить</button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Вкладка пар -->
+                        <div class="tab-pane fade" id="pairs" role="tabpanel">
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Пары</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form method="POST" action="{{ url_for('add_pair') }}" class="mb-4" id="addPairForm">
+                                        <div class="row">
+                                            <div class="col-md-5">
+                                                <select name="tutor_id" class="form-select" required>
+                                                    <option value="">Выберите репетитора</option>
+                                                    {% for id in telegram_ids %}
+                                                        {% if id.status == 'репетитор' %}
+                                                            <option value="{{ id.id }}" data-search="{{ id.description }} {{ id.telegram_id }}">{{ id.description }} — {{ id.telegram_id }}</option>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="col-md-5">
+                                                <select name="student_id" class="form-select" required>
+                                                    <option value="">Выберите ученика</option>
+                                                    {% for id in telegram_ids %}
+                                                        {% if id.status == 'ученик' %}
+                                                            <option value="{{ id.id }}" data-search="{{ id.description }} {{ id.telegram_id }}">{{ id.description }} — {{ id.telegram_id }}</option>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <button type="submit" class="btn btn-icon btn-primary w-100">
+                                                    <i class="bi bi-plus-lg"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+
+                                    <div class="table-responsive">
+                                        <table class="table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Репетитор</th>
+                                                    <th>Ученик</th>
+                                                    <th>Действия</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for pair in pairs %}
+                                                    <tr>
+                                                        <td>
+                                                            <span>{{ pair.tutor.description }}</span>
+                                                            <small class="text-muted ms-2">{{ pair.tutor.telegram_id }}</small>
+                                                        </td>
+                                                        <td>
+                                                            <span>{{ pair.student.description }}</span>
+                                                            <small class="text-muted ms-2">{{ pair.student.telegram_id }}</small>
+                                                        </td>
+                                                        <td>
+                                                            <button type="button" class="btn btn-icon btn-outline-primary me-2" 
+                                                                    onclick="showSchedule({{ pair.id }})">
+                                                                <i class="bi bi-calendar3"></i>
+                                                            </button>
+                                                            <a href="{{ url_for('delete_pair', id=pair.id) }}" 
+                                                               class="btn btn-icon btn-outline-danger" 
+                                                               onclick="return confirm('Вы уверены?')">
+                                                                <i class="bi bi-trash"></i>
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Вкладка расписания -->
+                        <div class="tab-pane fade" id="schedule" role="tabpanel">
+                            <div class="row">
+                                <!-- Список пар слева -->
+                                <div class="col-md-3">
+                                    <div class="list-group">
+                                        {% for pair in pairs %}
+                                            <a href="#" class="list-group-item list-group-item-action pair-link" 
+                                               data-pair-id="{{ pair.id }}"
+                                               onclick="loadPairSchedule({{ pair.id }})">
+                                                <div class="d-flex w-100 justify-content-between">
+                                                    <h6 class="mb-1">{{ pair.tutor.description }} <small class="text-muted ms-2">{{ pair.tutor.telegram_id }}</small></h6>
+                                                    <small>{{ pair.student.description }} <span class="text-muted ms-1">{{ pair.student.telegram_id }}</span></small>
+                                                </div>
+                                            </a>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Основной контент -->
+                                <div class="col-md-9">
+                                    <!-- Календарь -->
+                                    <div class="card mb-4">
+                                        <div class="card-header">
+                                            <h5 class="mb-0">Календарь занятий</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="calendar">
+                                                <div class="calendar-header d-flex justify-content-between align-items-center mb-3">
+                                                    <button class="btn btn-outline-primary" onclick="previousMonth()">&lt;</button>
+                                                    <h4 id="currentMonth"></h4>
+                                                    <button class="btn btn-outline-primary" onclick="nextMonth()">&gt;</button>
+                                                </div>
+                                                <div class="calendar-grid" id="calendarGrid">
+                                                    <!-- Дни недели -->
+                                                    <div class="calendar-day">Пн</div>
+                                                    <div class="calendar-day">Вт</div>
+                                                    <div class="calendar-day">Ср</div>
+                                                    <div class="calendar-day">Чт</div>
+                                                    <div class="calendar-day">Пт</div>
+                                                    <div class="calendar-day">Сб</div>
+                                                    <div class="calendar-day">Вс</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Модальное окно для занятия -->
+                                    <div class="modal fade" id="lessonModal" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Занятие</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <form id="lessonForm" method="POST" action="/add_schedule">
+                                                        <input type="hidden" name="pair_id" id="selectedPairId">
+                                                        <input type="hidden" name="day_of_week" id="selectedDay">
+                                                        
+                                                        <div class="mb-3">
+                                                            <label for="time" class="form-label">Время</label>
+                                                            <input type="time" class="form-control" id="time" name="time" required>
+                                                        </div>
+                                                        
+                                                        <div class="mb-3">
+                                                            <label for="subject" class="form-label">Предмет</label>
+                                                            <select class="form-select" id="subject" name="subject" required>
+                                                                <option value="">Выберите предмет</option>
+                                                                <option value="Математика">Математика</option>
+                                                                <option value="Физика">Физика</option>
+                                                                <option value="Химия">Химия</option>
+                                                                <option value="Биология">Биология</option>
+                                                                <option value="Русский язык">Русский язык</option>
+                                                                <option value="Литература">Литература</option>
+                                                                <option value="История">История</option>
+                                                                <option value="Обществознание">Обществознание</option>
+                                                                <option value="Английский язык">Английский язык</option>
+                                                                <option value="Информатика">Информатика</option>
+                                                                <option value="География">География</option>
+                                                            </select>
+                                                        </div>
+                                                        
+                                                        <div class="d-flex justify-content-between">
+                                                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                                                            <button type="button" class="btn btn-danger" id="deleteLessonBtn" style="display: none;">Удалить</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Список занятий -->
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h5 class="mb-0">Список занятий</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div id="scheduleItems"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Вкладка настроек -->
+                        <div class="tab-pane fade" id="settings" role="tabpanel">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h4>Настройки</h4>
+                                </div>
+                                <div class="card-body">
+                                    <form method="POST" action="{{ url_for('change_password') }}">
+                                        <div class="mb-3">
+                                            <label for="current_password" class="form-label">Текущий пароль</label>
+                                            <input type="password" class="form-control" id="current_password" name="current_password" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="new_password" class="form-label">Новый пароль</label>
+                                            <input type="password" class="form-control" id="new_password" name="new_password" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="confirm_password" class="form-label">Подтвердите новый пароль</label>
+                                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">Изменить пароль</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentPairId = null;
+        let currentDate = new Date();
+        let currentMonth = currentDate.getMonth();
+        let currentYear = currentDate.getFullYear();
+        let currentSchedules = [];
+        let lessonModal = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            lessonModal = new bootstrap.Modal(document.getElementById('lessonModal'));
+            // Автоматическое скрытие уведомлений через 3 секунды
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 3000);
+            });
+
+            // Автоматическая активация первой пары при открытии вкладки расписания
+            const scheduleTab = document.getElementById('schedule-tab');
+            scheduleTab.addEventListener('shown.bs.tab', function() {
+                const firstPair = document.querySelector('.pair-link');
+                if (firstPair) {
+                    const pairId = firstPair.dataset.pairId;
+                    loadPairSchedule(pairId);
+                }
+            });
+
+            // Добавляем поиск в выпадающих списках
+            const tutorSelect = document.querySelector('select[name="tutor_id"]');
+            const studentSelect = document.querySelector('select[name="student_id"]');
+            
+            if (tutorSelect) {
+                tutorSelect.addEventListener('input', function() {
+                    filterOptions(this);
+                });
+            }
+            
+            if (studentSelect) {
+                studentSelect.addEventListener('input', function() {
+                    filterOptions(this);
+                });
+            }
+        });
+
+        function loadPairSchedule(pairId) {
+            currentPairId = pairId;
+            document.getElementById('selectedPairId').value = pairId;
+            
+            // Подсвечиваем выбранную пару
+            document.querySelectorAll('.pair-link').forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.pairId == pairId) {
+                    link.classList.add('active');
+                }
+            });
+            
+            // Загружаем расписание для выбранной пары
+            fetch(`/get_month_schedule?pair_id=${pairId}&month=${currentMonth + 1}&year=${currentYear}`)
+                .then(response => response.json())
+                .then(schedules => {
+                    currentSchedules = schedules;
+                    updateCalendar(schedules);
+                    updateScheduleList(schedules);
+                });
+        }
+
+        function updateScheduleList(schedules) {
+            const scheduleItems = document.getElementById('scheduleItems');
+            scheduleItems.innerHTML = '';
+
+            if (schedules.length === 0) {
+                scheduleItems.innerHTML = '<p class="text-muted">Нет занятий</p>';
+                return;
+            }
+
+            // Сортируем занятия по дате и времени
+            schedules.sort((a, b) => {
+                const dateA = new Date(a.date + 'T' + a.time);
+                const dateB = new Date(b.date + 'T' + b.time);
+                return dateA - dateB;
+            });
+
+            const list = document.createElement('div');
+            list.className = 'list-group';
+
+            schedules.forEach(schedule => {
+                const date = new Date(schedule.date);
+                const dayNames = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+                const dayName = dayNames[date.getDay()];
+                const formattedDate = date.toLocaleDateString('ru-RU', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+
+                const item = document.createElement('div');
+                item.className = 'list-group-item';
+                item.innerHTML = `
+                    <div class="d-flex w-100 justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${schedule.subject}</h6>
+                            <small class="text-muted">${dayName}, ${formattedDate} в ${schedule.time}</small>
+                        </div>
+                        <div>
+                            <button class="btn btn-icon btn-outline-primary me-2" 
+                                    onclick="handleDayClick('${schedule.date}', {
+                                        id: ${schedule.id},
+                                        time: '${schedule.time}',
+                                        subject: '${schedule.subject}'
+                                    })">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-icon btn-outline-danger" 
+                                    onclick="deleteSchedule(${schedule.id})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+
+            scheduleItems.appendChild(list);
+        }
+
+        function deleteSchedule(scheduleId) {
+            if (confirm('Вы уверены, что хотите удалить это занятие?')) {
+                fetch(`/delete_schedule/${scheduleId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            loadPairSchedule(currentPairId);
+                        } else {
+                            alert(data.error || 'Ошибка при удалении занятия');
+                        }
+                    });
+            }
+        }
+
+        function updateCalendar(schedules) {
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const startingDay = firstDay.getDay() || 7;
+            const monthLength = lastDay.getDate();
+
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                              'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+            
+            document.getElementById('currentMonth').textContent = 
+                `${monthNames[currentMonth]} ${currentYear}`;
+
+            const grid = document.getElementById('calendarGrid');
+            while (grid.children.length > 7) {
+                grid.removeChild(grid.lastChild);
+            }
+
+            for (let i = 1; i < startingDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day';
+                grid.appendChild(emptyDay);
+            }
+
+            for (let day = 1; day <= monthLength; day++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                dayElement.textContent = day;
+
+                const currentDate = new Date(currentYear, currentMonth, day);
+                const dateStr = currentDate.toISOString().split('T')[0];
+                const daySchedule = schedules.find(s => s.date === dateStr);
+                
+                if (daySchedule) {
+                    dayElement.classList.add('has-lesson');
+                    dayElement.title = `${daySchedule.time} - ${daySchedule.subject}`;
+                }
+
+                if (day === currentDate.getDate() && 
+                    currentMonth === currentDate.getMonth() && 
+                    currentYear === currentDate.getFullYear()) {
+                    dayElement.classList.add('today');
+                }
+
+                dayElement.onclick = () => handleDayClick(dateStr, daySchedule);
+                grid.appendChild(dayElement);
+            }
+        }
+
+        function handleDayClick(date, existingSchedule) {
+            if (!currentPairId) {
+                alert('Пожалуйста, выберите пару');
+                return;
+            }
+
+            const modal = document.getElementById('lessonModal');
+            const form = document.getElementById('lessonForm');
+            const deleteBtn = document.getElementById('deleteLessonBtn');
+            
+            document.getElementById('selectedDay').value = date;
+            
+            if (existingSchedule) {
+                // Редактирование существующего занятия
+                document.getElementById('time').value = existingSchedule.time;
+                document.getElementById('subject').value = existingSchedule.subject;
+                deleteBtn.style.display = 'block';
+                deleteBtn.onclick = () => {
+                    if (confirm('Вы уверены, что хотите удалить это занятие?')) {
+                        fetch(`/delete_schedule/${existingSchedule.id}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    loadPairSchedule(currentPairId);
+                                    lessonModal.hide();
+                                } else {
+                                    alert(data.error || 'Ошибка при удалении занятия');
+                                }
+                            });
+                    }
+                };
+            } else {
+                // Создание нового занятия
+                document.getElementById('time').value = '';
+                document.getElementById('subject').value = '';
+                deleteBtn.style.display = 'none';
+            }
+            
+            // Обработка отправки формы
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                const formData = new FormData(form);
+                formData.append('date', date);
+                
+                if (existingSchedule) {
+                    // Обновление существующего занятия
+                    fetch(`/edit_schedule/${existingSchedule.id}`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            loadPairSchedule(currentPairId);
+                            lessonModal.hide();
+                        } else {
+                            alert(data.error || 'Ошибка при обновлении занятия');
+                        }
+                    });
+                } else {
+                    // Создание нового занятия
+                    fetch('/add_schedule', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            loadPairSchedule(currentPairId);
+                            lessonModal.hide();
+                        } else {
+                            alert(data.error || 'Ошибка при создании занятия');
+                        }
+                    });
+                }
+            };
+            
+            lessonModal.show();
+        }
+
+        function previousMonth() {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            if (currentPairId) {
+                loadPairSchedule(currentPairId);
+            }
+        }
+
+        function nextMonth() {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            if (currentPairId) {
+                loadPairSchedule(currentPairId);
+            }
+        }
+
+        function showSchedule(pairId) {
+            // Переключаемся на вкладку расписания
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('show', 'active');
+            });
+            
+            const schedulePane = document.getElementById('schedule');
+            if (schedulePane) {
+                schedulePane.classList.add('show', 'active');
+            }
+            
+            // Обновляем активную иконку в боковой панели
+            document.querySelectorAll('.sidebar-icon').forEach(icon => {
+                icon.classList.remove('active');
+            });
+            const scheduleIcon = document.querySelector('.sidebar-icon[onclick*="schedule"]');
+            if (scheduleIcon) {
+                scheduleIcon.classList.add('active');
+            }
+            
+            // Загружаем расписание для выбранной пары
+            setTimeout(() => {
+                loadPairSchedule(pairId);
+            }, 100);
+        }
+
+        function toggleParentField() {
+            const statusSelect = document.getElementById('status');
+            const parentField = document.getElementById('parent_field');
+            const parentIdInput = document.getElementById('parent_id');
+
+            if (statusSelect.value === 'ученик') {
+                parentField.style.display = 'block';
+            } else {
+                parentField.style.display = 'none';
+                parentIdInput.value = '';
+            }
+        }
+
+        function toggleEditParentField(userId) {
+            const statusSelect = document.getElementById(`edit_status${userId}`);
+            const parentField = document.getElementById(`edit_parent_field${userId}`);
+            const parentIdInput = document.getElementById(`edit_parent_id${userId}`);
+
+            if (statusSelect.value === 'ученик') {
+                parentField.style.display = 'block';
+            } else {
+                parentField.style.display = 'none';
+                parentIdInput.value = '';
+            }
+        }
+
+        function filterUsers() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const users = document.querySelectorAll('#usersTable tbody tr');
+
+            users.forEach(row => {
+                const id = row.cells[0].textContent.toLowerCase();
+                const description = row.cells[1].textContent.toLowerCase();
+                const status = row.cells[2].textContent.toLowerCase();
+                const telegramId = row.cells[3].textContent.toLowerCase();
+                const additionalDescription = row.cells[4].textContent.toLowerCase();
+
+                const matchesSearch = id.includes(searchInput) ||
+                                      description.includes(searchInput) ||
+                                      status.includes(searchInput) ||
+                                      telegramId.includes(searchInput) ||
+                                      additionalDescription.includes(searchInput);
+
+                const matchesStatus = statusFilter === '' || status.includes(statusFilter);
+
+                row.style.display = matchesSearch && matchesStatus ? '' : 'none';
+            });
+        }
+
+        function switchTab(tabName) {
+            // Скрываем все вкладки
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('show', 'active');
+            });
+            
+            // Показываем нужную вкладку
+            const targetPane = document.getElementById(tabName);
+            if (targetPane) {
+                targetPane.classList.add('show', 'active');
+            }
+            
+            // Обновляем активную иконку в боковой панели
+            document.querySelectorAll('.sidebar-icon').forEach(icon => {
+                icon.classList.remove('active');
+            });
+            event.target.closest('.sidebar-icon').classList.add('active');
+            
+            // Если переключаемся на расписание, загружаем первую пару
+            if (tabName === 'schedule') {
+                setTimeout(() => {
+                    const firstPair = document.querySelector('.pair-link');
+                    if (firstPair) {
+                        const pairId = firstPair.dataset.pairId;
+                        loadPairSchedule(pairId);
+                    }
+                }, 100);
+            }
+        }
+
+        function addAtSymbol(input) {
+            if (input.value && !input.value.startsWith('@')) {
+                input.value = '@' + input.value;
+            }
+        }
+
+        function filterOptions(select) {
+            const searchTerm = select.value.toLowerCase();
+            const options = select.querySelectorAll('option');
+            
+            options.forEach(option => {
+                if (option.value === '') return; // Пропускаем placeholder
+                
+                const searchText = option.getAttribute('data-search') || option.textContent;
+                if (searchText.toLowerCase().includes(searchTerm)) {
+                    option.style.display = '';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        }
+
+        // Обработка формы создания пары
+        document.addEventListener('DOMContentLoaded', function() {
+            const addPairForm = document.getElementById('addPairForm');
+            if (addPairForm) {
+                addPairForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(this);
+                    
+                    fetch('/add_pair', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Показываем уведомление об успехе
+                            showAlert(data.message, 'success');
+                            // Очищаем форму
+                            this.reset();
+                            // Перезагружаем страницу для обновления списка пар
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1000);
+                        } else {
+                            showAlert(data.error, 'danger');
+                        }
+                    })
+                    .catch(error => {
+                        showAlert('Ошибка при создании пары', 'danger');
+                    });
+                });
+            }
+        });
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            // Вставляем уведомление в начало контейнера
+            const container = document.querySelector('.container');
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            // Автоматически скрываем через 3 секунды
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 3000);
+        }
+    </script>
+</body>
+</html> 

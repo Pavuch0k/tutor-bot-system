@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Пользователи - Админ-панель</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .gradient-purple {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+
+        .gradient-red {
+            background: linear-gradient(-45deg, #b71c1c, #c62828, #d32f2f, #e53935);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            background-color: #1e1e1e;
+        }
+        .card {
+            background-color: #252526;
+            border-color: #333;
+        }
+        .card-header {
+            background-color: #333;
+            border-color: #333;
+            color: #d4d4d4;
+        }
+        .table {
+            color: #d4d4d4;
+        }
+        .table td, .table th {
+            border-color: #333;
+        }
+        .form-control, .form-select {
+            background-color: #3c3c3c;
+            border-color: #333;
+            color: #d4d4d4;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #3c3c3c;
+            border-color: #9c27b0;
+            color: #d4d4d4;
+        }
+        .modal-content {
+            background-color: #252526;
+            color: #d4d4d4;
+        }
+        .modal-header {
+            border-color: #333;
+        }
+        .modal-footer {
+            border-color: #333;
+        }
+        .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 300px;
+            background-color: #252526;
+            border-color: #333;
+            color: #d4d4d4;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .alert-success {
+            background-color: #1e3a1e;
+            border-color: #2d4d2d;
+        }
+        .btn-primary {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(-45deg, #7b1fa2, #8e24aa, #6a1b9a, #9c27b0);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+        }
+        .btn-danger {
+            background: linear-gradient(-45deg, #b71c1c, #c62828, #d32f2f, #e53935);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+        }
+        .btn-danger:hover {
+            background: linear-gradient(-45deg, #c62828, #d32f2f, #b71c1c, #e53935);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+        }
+        .btn-outline-primary {
+            color: #9c27b0;
+            border-color: #9c27b0;
+        }
+        .btn-outline-primary:hover {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+            color: white;
+        }
+        .btn-outline-danger {
+            color: #d32f2f;
+            border-color: #d32f2f;
+        }
+        .btn-outline-danger:hover {
+            background: linear-gradient(-45deg, #b71c1c, #c62828, #d32f2f, #e53935);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+            color: white;
+        }
+        .btn-icon {
+            padding: 0.375rem 0.75rem;
+            font-size: 1.1rem;
+            line-height: 1;
+            border-radius: 0.25rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-width: 2px;
+        }
+        
+        /* Боковая панель */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 70px;
+            background-color: #252526;
+            border-right: 1px solid #333;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 40px;
+        }
+        
+        .sidebar-icon {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            background-color: #3c3c3c;
+            text-decoration: none;
+            color: #d4d4d4;
+        }
+        
+        .sidebar-icon:hover {
+            background-color: #4c4c4c;
+            transform: scale(1.1);
+            color: white;
+        }
+        
+        .sidebar-icon.active {
+            background-color: #6a1b9a;
+            box-shadow: 0 0 15px rgba(156, 39, 176, 0.4);
+            color: white;
+        }
+        
+        .sidebar-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+        
+        .main-content {
+            margin-left: 70px;
+            margin-top: 20px;
+            padding-top: 40px;
+        }
+        
+        /* Анимации для блоков */
+        .card {
+            animation: slideDown 0.6s ease-out;
+            border: 2px solid transparent;
+            background: linear-gradient(45deg, #252526, #252526) padding-box,
+                        linear-gradient(45deg, #6a1b9a, #9c27b0) border-box;
+            transition: all 0.3s ease;
+        }
+        
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        
+        .card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(156, 39, 176, 0.3);
+            border-color: #9c27b0;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Вертикальная боковая панель -->
+    <div class="sidebar">
+        <a href="{{ url_for('admin_users') }}" class="sidebar-icon active" title="Пользователи">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_pairs') }}" class="sidebar-icon" title="Пары">
+            <svg viewBox="0 0 24 24">
+                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_schedule') }}" class="sidebar-icon" title="Расписание">
+            <svg viewBox="0 0 24 24">
+                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_subjects') }}" class="sidebar-icon" title="Предметы">
+            <svg viewBox="0 0 24 24">
+                <path d="M21,5c-1.11-0.35-2.33-0.5-3.5-0.5c-1.95,0-4.05,0.4-5.5,1.5c-1.45-1.1-3.55-1.5-5.5-1.5S2.45,4.9,1,6v14.65c0,0.25,0.25,0.5,0.5,0.5c0.1,0,0.15-0.05,0.25-0.05C3.1,20.45,5.05,20,6.5,20c1.95,0,4.05,0.4,5.5,1.5c1.35-0.85,3.8-1.5,5.5-1.5c1.65,0,3.35,0.3,4.75,1.05c0.1,0.05,0.15,0.05,0.25,0.05c0.25,0,0.5-0.25,0.5-0.5V6C22.4,5.55,21.75,5.25,21,5z M21,18.5c-1.1-0.35-2.3-0.5-3.5-0.5c-1.7,0-4.15,0.65-5.5,1.5V8c1.35-0.85,3.8-1.5,5.5-1.5c1.2,0,2.4,0.15,3.5,0.5V18.5z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_settings') }}" class="sidebar-icon" title="Настройки">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.65-.07-.97l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.88 2.28 14.5 2 14.12 2h-4c-.38 0-.76.28-.84.66l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.32-.07.65-.07.97 0 .33.03.65.07.97l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.08.38.46.66.84.66h4c.38 0 .76-.28.84-.66l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65z"/>
+            </svg>
+        </a>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4><i class="bi bi-person-plus-fill me-2"></i>Создание пользователя</h4>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('add_telegram_id') }}">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="status" class="form-label">Статус</label>
+                                        <select class="form-control" id="status" name="status" required onchange="toggleParentField()">
+                                            <option value="">Выберите статус</option>
+                                            <option value="репетитор">Репетитор</option>
+                                            <option value="ученик">Ученик</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="description" class="form-label">Имя</label>
+                                        <input type="text" class="form-control" id="description" name="description" required>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="telegram_id" class="form-label">ID</label>
+                                        <input type="text" class="form-control" id="telegram_id" name="telegram_id" required oninput="addAtSymbol(this)">
+                                    </div>
+                                    <div class="col-md-6" id="parent_field" style="display: none;">
+                                        <label for="parent_id" class="form-label">ID родителя</label>
+                                        <input type="text" class="form-control" id="parent_id" name="parent_id" oninput="addAtSymbol(this)">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="additional_description" class="form-label">Описание</label>
+                                    <textarea class="form-control" id="additional_description" name="additional_description" rows="3" placeholder="Дополнительная информация"></textarea>
+                                </div>
+                                <div class="d-flex justify-content-center">
+                                    <button type="submit" class="btn btn-primary w-100" style="font-size: 1.2rem;">
+                                        <i class="bi bi-plus-lg me-2"></i>Добавить
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h4><i class="bi bi-people-fill me-2"></i>Пользователи</h4>
+                        </div>
+                        <div class="card-body">
+                            <!-- Поиск и фильтры -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control" id="searchInput" placeholder="Поиск по любому значению..." onkeyup="filterUsers()">
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select" id="statusFilter" onchange="filterUsers()">
+                                        <option value="">Все пользователи</option>
+                                        <option value="репетитор">Репетиторы</option>
+                                        <option value="ученик">Ученики</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <table class="table" id="usersTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Имя</th>
+                                        <th>Статус</th>
+                                        <th>Telegram</th>
+                                        <th>Описание</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in telegram_ids %}
+                                    <tr>
+                                        <td>{{ item.id }}</td>
+                                        <td>{{ item.description }}</td>
+                                        <td>{{ item.status }}</td>
+                                        <td>{{ item.telegram_id }}</td>
+                                        <td>{{ item.additional_description or '' }}</td>
+                                        <td>
+                                            <button type="button" class="btn btn-icon btn-outline-primary me-2" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#editModal{{ item.id }}">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <a href="{{ url_for('delete_telegram_id', id=item.id) }}" 
+                                               class="btn btn-icon btn-outline-danger"
+                                               onclick="return confirm('Вы уверены, что хотите удалить этот ID?')">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальные окна для редактирования вынесены из таблицы -->
+    {% for item in telegram_ids %}
+    <div class="modal fade" id="editModal{{ item.id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Редактировать запись</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <form method="POST" action="{{ url_for('edit_telegram_id', id=item.id) }}">
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-6">
+                                                                <label for="edit_status{{ item.id }}" class="form-label">Статус</label>
+                                                                <select class="form-control" id="edit_status{{ item.id }}" name="status" required onchange="toggleEditParentField({{ item.id }})">
+                                                                    <option value="репетитор" {% if item.status == 'репетитор' %}selected{% endif %}>Репетитор</option>
+                                                                    <option value="ученик" {% if item.status == 'ученик' %}selected{% endif %}>Ученик</option>
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-6">
+                                                                <label for="edit_description{{ item.id }}" class="form-label">Имя</label>
+                                                                <input type="text" class="form-control" id="edit_description{{ item.id }}" 
+                                                                       name="description" value="{{ item.description }}" required>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row mb-3">
+                                                            <div class="col-md-6">
+                                                                <label for="edit_telegram_id{{ item.id }}" class="form-label">ID</label>
+                                                                <input type="text" class="form-control" id="edit_telegram_id{{ item.id }}" 
+                                                                       name="telegram_id" value="{{ item.telegram_id }}" required oninput="addAtSymbol(this)">
+                                                            </div>
+                                                            <div class="col-md-6" id="edit_parent_field{{ item.id }}" style="display: {% if item.status == 'ученик' %}block{% else %}none{% endif %};">
+                                                                <label for="edit_parent_id{{ item.id }}" class="form-label">ID родителя</label>
+                                                                <input type="text" class="form-control" id="edit_parent_id{{ item.id }}" 
+                                                                       name="parent_id" value="{{ item.parent_id or '' }}" oninput="addAtSymbol(this)">
+                                                            </div>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="edit_additional_description{{ item.id }}" class="form-label">Описание</label>
+                                                            <textarea class="form-control" id="edit_additional_description{{ item.id }}" 
+                                                                      name="additional_description" rows="3" placeholder="Дополнительная информация">{{ item.additional_description or '' }}</textarea>
+                                                        </div>
+                                                        <button type="submit" class="btn btn-primary">Сохранить</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+    {% endfor %}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleParentField() {
+            const statusSelect = document.getElementById('status');
+            const parentField = document.getElementById('parent_field');
+            const parentIdInput = document.getElementById('parent_id');
+
+            if (statusSelect.value === 'ученик') {
+                parentField.style.display = 'block';
+            } else {
+                parentField.style.display = 'none';
+                parentIdInput.value = '';
+            }
+        }
+
+        function toggleEditParentField(userId) {
+            const statusSelect = document.getElementById(`edit_status${userId}`);
+            const parentField = document.getElementById(`edit_parent_field${userId}`);
+            const parentIdInput = document.getElementById(`edit_parent_id${userId}`);
+
+            if (statusSelect.value === 'ученик') {
+                parentField.style.display = 'block';
+            } else {
+                parentField.style.display = 'none';
+                parentIdInput.value = '';
+            }
+        }
+
+        function addAtSymbol(input) {
+            if (input.value && !input.value.startsWith('@')) {
+                input.value = '@' + input.value;
+            }
+        }
+
+        function filterUsers() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const users = document.querySelectorAll('#usersTable tbody tr');
+
+            users.forEach(row => {
+                const id = row.cells[0].textContent.toLowerCase();
+                const description = row.cells[1].textContent.toLowerCase();
+                const status = row.cells[2].textContent.toLowerCase();
+                const telegramId = row.cells[3].textContent.toLowerCase();
+                const additionalDescription = row.cells[4].textContent.toLowerCase();
+
+                const matchesSearch = id.includes(searchInput) ||
+                                      description.includes(searchInput) ||
+                                      status.includes(searchInput) ||
+                                      telegramId.includes(searchInput) ||
+                                      additionalDescription.includes(searchInput);
+
+                const matchesStatus = statusFilter === '' || status.includes(statusFilter);
+
+                row.style.display = matchesSearch && matchesStatus ? '' : 'none';
+            });
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,25 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Устанавливаем системные зависимости и tzdata для часовых поясов
+RUN apt-get update && apt-get install -y \
+    gcc \
+    default-libmysqlclient-dev \
+    pkg-config \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+# Копируем requirements и устанавливаем зависимости
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Копируем файлы бота
+COPY bot.py .
+COPY .env .
+
+# Убеждаемся что скрипт имеет права на выполнение
+RUN chmod +x bot.py
+
+# Запускаем бота
+CMD ["python", "-u", "bot.py"]

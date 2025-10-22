@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Расписание - Админ-панель</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .gradient-purple {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container-fluid {
+            background-color: #1e1e1e;
+        }
+        .card {
+            background-color: #252526;
+            border-color: #333;
+        }
+        .card-header {
+            background-color: #333;
+            border-color: #333;
+            color: #d4d4d4;
+        }
+        .form-control, .form-select {
+            background-color: #3c3c3c;
+            border-color: #333;
+            color: #d4d4d4;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #3c3c3c;
+            border-color: #9c27b0;
+            color: #d4d4d4;
+        }
+        .form-control[readonly] {
+            background-color: #2d2d2d;
+            color: #d4d4d4;
+        }
+        .list-group-item {
+            background-color: #252526;
+            border-color: #333;
+            color: #d4d4d4;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .list-group-item:hover {
+            background-color: #2d2d2d;
+        }
+        .list-group-item.active {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border-color: #9c27b0;
+            color: white;
+        }
+        .modal-content {
+            background-color: #252526;
+            color: #d4d4d4;
+        }
+        .modal-header {
+            border-color: #333;
+        }
+        .modal-footer {
+            border-color: #333;
+        }
+        .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+        .btn-primary {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(-45deg, #7b1fa2, #8e24aa, #6a1b9a, #9c27b0);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+        }
+        .btn-outline-primary {
+            color: #9c27b0;
+            border-color: #9c27b0;
+        }
+        .btn-outline-primary:hover {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+            color: white;
+        }
+        .btn-month-nav {
+            background-color: rgba(156, 39, 176, 0.2);
+            border-color: #9c27b0;
+            color: #9c27b0;
+        }
+        .btn-month-nav:hover {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border-color: #9c27b0;
+            color: white;
+        }
+        
+        /* Боковая панель навигации */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 70px;
+            background-color: #252526;
+            border-right: 1px solid #333;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20px;
+        }
+        
+        .sidebar-icon {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            background-color: #3c3c3c;
+            text-decoration: none;
+            color: #d4d4d4;
+        }
+        
+        .sidebar-icon:hover {
+            background-color: #4c4c4c;
+            transform: scale(1.1);
+            color: white;
+        }
+        
+        .sidebar-icon.active {
+            background-color: #6a1b9a;
+            box-shadow: 0 0 15px rgba(156, 39, 176, 0.4);
+            color: white;
+        }
+        
+        .sidebar-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+        
+        .main-content {
+            margin-left: 70px;
+            padding: 20px;
+        }
+
+        /* Список репетиторов */
+        .tutors-list {
+            height: calc(100vh - 140px);
+            overflow-y: auto;
+        }
+        
+        .tutors-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .tutors-list::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+        
+        .tutors-list::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        /* Календарь */
+        .calendar {
+            margin: 20px 0;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+        .calendar-day {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #333;
+            cursor: pointer;
+            background-color: #252526;
+            color: #d4d4d4;
+            position: relative;
+            transition: all 0.3s ease;
+            padding: 10px;
+            min-height: 60px;
+        }
+        .calendar-day:hover {
+            background-color: #2d2d2d;
+            transform: scale(1.05);
+            z-index: 10;
+        }
+        .calendar-day.has-lesson {
+            border: 1px solid rgba(156, 39, 176, 0.5);
+            background-color: rgba(156, 39, 176, 0.1);
+        }
+        .calendar-day.today {
+            border: 2px solid #4caf50;
+            box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+        .calendar-day.today.has-lesson {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 50%, rgba(156, 39, 176, 0.1) 50%);
+        }
+        .calendar-day.past-lesson {
+            background-color: rgba(128, 128, 128, 0.1);
+            border-color: rgba(128, 128, 128, 0.3);
+        }
+        .calendar-day.past-lesson .lesson-dot {
+            background: #888;
+        }
+        
+        /* Кнопка добавления занятия */
+        .add-lesson-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 20px;
+            height: 20px;
+            background: #9c27b0;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .calendar-day:hover .add-lesson-btn {
+            display: flex;
+        }
+        
+        .add-lesson-btn:hover {
+            background: #7b1fa2;
+            transform: scale(1.2);
+        }
+        
+        /* Индикаторы занятий */
+        .lesson-dots {
+            display: flex;
+            gap: 2px;
+            margin-top: 3px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 90%;
+        }
+        
+        .lesson-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: #9c27b0;
+        }
+        
+        /* День календаря */
+        .day-number {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        /* Список занятий дня */
+        .day-lessons {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .lesson-item {
+            background-color: #2d2d2d;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-left: 3px solid #9c27b0;
+        }
+        
+        .lesson-time {
+            font-weight: 500;
+            color: #9c27b0;
+        }
+        
+        .lesson-info {
+            font-size: 14px;
+            color: #888;
+        }
+        
+        .btn-icon {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Вертикальная боковая панель -->
+    <div class="sidebar">
+        <a href="{{ url_for('admin_users') }}" class="sidebar-icon" title="Пользователи">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_pairs') }}" class="sidebar-icon" title="Пары">
+            <svg viewBox="0 0 24 24">
+                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_schedule') }}" class="sidebar-icon active" title="Расписание">
+            <svg viewBox="0 0 24 24">
+                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_subjects') }}" class="sidebar-icon" title="Предметы">
+            <svg viewBox="0 0 24 24">
+                <path d="M21,5c-1.11-0.35-2.33-0.5-3.5-0.5c-1.95,0-4.05,0.4-5.5,1.5c-1.45-1.1-3.55-1.5-5.5-1.5S2.45,4.9,1,6v14.65c0,0.25,0.25,0.5,0.5,0.5c0.1,0,0.15-0.05,0.25-0.05C3.1,20.45,5.05,20,6.5,20c1.95,0,4.05,0.4,5.5,1.5c1.35-0.85,3.8-1.5,5.5-1.5c1.65,0,3.35,0.3,4.75,1.05c0.1,0.05,0.15,0.05,0.25,0.05c0.25,0,0.5-0.25,0.5-0.5V6C22.4,5.55,21.75,5.25,21,5z M21,18.5c-1.1-0.35-2.3-0.5-3.5-0.5c-1.7,0-4.15,0.65-5.5,1.5V8c1.35-0.85,3.8-1.5,5.5-1.5c1.2,0,2.4,0.15,3.5,0.5V18.5z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_settings') }}" class="sidebar-icon" title="Настройки">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.65-.07-.97l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.88 2.28 14.5 2 14.12 2h-4c-.38 0-.76.28-.84.66l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.32-.07.65-.07.97 0 .33.03.65.07.97l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.08.38.46.66.84.66h4c.38 0 .76-.28.84-.66l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65z"/>
+            </svg>
+        </a>
+    </div>
+
+    <div class="main-content">
+        <div class="container-fluid">
+            <div class="row">
+                <!-- Список репетиторов слева -->
+                <div class="col-md-3">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-person-badge me-2"></i>Репетиторы</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush tutors-list">
+                                <a href="#" class="list-group-item list-group-item-action active" 
+                                   data-tutor-id="all" onclick="selectTutor('all', this)">
+                                    <i class="bi bi-people me-2"></i>Все репетиторы
+                                </a>
+                                {% for tutor in tutors %}
+                                <a href="#" class="list-group-item list-group-item-action" 
+                                   data-tutor-id="{{ tutor.id }}" onclick="selectTutor({{ tutor.id }}, this)">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>{{ tutor.description }}</span>
+                                        <span class="badge bg-secondary" id="tutor-count-{{ tutor.id }}">0</span>
+                                    </div>
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Календарь и расписание справа -->
+                <div class="col-md-9">
+                    <!-- Календарь -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="bi bi-calendar-week me-2"></i>Календарь занятий</h5>
+                                <div class="d-flex align-items-center">
+                                    <button class="btn btn-month-nav btn-sm me-2" onclick="previousMonth()">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </button>
+                                    <h5 class="mb-0 mx-3" id="currentMonth"></h5>
+                                    <button class="btn btn-month-nav btn-sm" onclick="nextMonth()">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="calendar">
+                                <div class="calendar-grid" id="calendarGrid">
+                                    <!-- Дни недели -->
+                                    <div class="text-center text-muted">Пн</div>
+                                    <div class="text-center text-muted">Вт</div>
+                                    <div class="text-center text-muted">Ср</div>
+                                    <div class="text-center text-muted">Чт</div>
+                                    <div class="text-center text-muted">Пт</div>
+                                    <div class="text-center text-muted">Сб</div>
+                                    <div class="text-center text-muted">Вс</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Список занятий -->
+                    <div class="card" id="scheduleCard">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-list-ul me-2"></i>
+                                    <span id="scheduleTitle">Расписание на месяц</span>
+                                </h5>
+                                <button class="btn btn-outline-primary btn-sm" id="backToMonthBtn" style="display: none;" onclick="showMonthSchedule()">
+                                    <i class="bi bi-calendar-month me-1"></i>Расписание на месяц
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="scheduleContent" class="day-lessons"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для добавления занятия -->
+    <div class="modal fade" id="addLessonModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Добавить занятие</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addLessonForm">
+                        <input type="hidden" id="lesson_date" name="date">
+                        <input type="hidden" id="lesson_tutor_id" name="tutor_id">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Репетитор</label>
+                            <input type="text" class="form-control" id="tutor_name" readonly>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="student_id" class="form-label">Ученик</label>
+                            <select class="form-select" id="student_id" name="student_id" required>
+                                <option value="">Выберите ученика</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="subject_id" class="form-label">Предмет</label>
+                            <select class="form-select" id="subject_id" name="subject_id" required>
+                                <option value="">Выберите предмет</option>
+                                {% for subject in subjects %}
+                                    <option value="{{ subject.id }}">{{ subject.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="lesson_time" class="form-label">Время</label>
+                            <input type="time" class="form-control" id="lesson_time" name="time" required>
+                        </div>
+                        
+                        <!-- Автопродление занятий -->
+                        <div class="card mb-3" style="background-color: #2d2d2d; border-color: #444;">
+                            <div class="card-body">
+                                <h6 class="card-title text-primary">
+                                    <i class="bi bi-arrow-repeat me-2"></i>Автопродление занятий
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="repeat_count" class="form-label">Количество занятий</label>
+                                        <input type="number" class="form-control" id="repeat_count" name="repeat_count" 
+                                               min="1" max="52" placeholder="1" onchange="calculateEndDate()">
+                                        <small class="text-muted">Всего занятий (включая первое)</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="end_date" class="form-label">Крайняя дата</label>
+                                        <input type="date" class="form-control" id="end_date" name="end_date" 
+                                               onchange="calculateWeeksCount()">
+                                        <small class="text-muted" id="end_date_info">Дата последнего занятия</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                            <button type="submit" class="btn btn-primary">Добавить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentDate = new Date();
+        let currentMonth = currentDate.getMonth();
+        let currentYear = currentDate.getFullYear();
+        let currentSchedules = [];
+        let selectedTutorId = 'all';
+        let selectedDate = null;
+        let addLessonModal = null;
+        let tutorPairs = {};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            addLessonModal = new bootstrap.Modal(document.getElementById('addLessonModal'));
+            loadMonthSchedule();
+            loadTutorPairs();
+        });
+
+        function loadTutorPairs() {
+            // Загружаем связи репетитор-ученик
+            fetch('/api/tutor_pairs')
+                .then(response => response.json())
+                .then(data => {
+                    tutorPairs = data;
+                })
+                .catch(() => {
+                    // Если endpoint не существует, используем запасной вариант
+                    tutorPairs = {};
+                });
+        }
+
+        window.selectTutor = function(tutorId, element) {
+            selectedTutorId = tutorId;
+            
+            // Обновляем активный элемент
+            document.querySelectorAll('.list-group-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+            
+            // Перезагружаем календарь с фильтром
+            updateCalendar();
+            
+            // Показываем расписание на месяц при смене репетитора
+            showMonthSchedule();
+        }
+
+        function loadMonthSchedule() {
+            fetch(`/get_month_schedule?month=${currentMonth + 1}&year=${currentYear}`)
+                .then(response => response.json())
+                .then(schedules => {
+                    currentSchedules = schedules;
+                    updateCalendar();
+                    updateTutorCounts();
+                    showMonthSchedule(); // Автоматически показываем расписание на месяц
+                });
+        }
+
+        function updateTutorCounts() {
+            // Считаем количество будущих занятий для каждого репетитора
+            const counts = {};
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            currentSchedules.forEach(schedule => {
+                // Парсим дату корректно
+                const [year, month, day] = schedule.date.split('-').map(Number);
+                const scheduleDate = new Date(year, month - 1, day);
+                // Считаем только будущие занятия
+                if (scheduleDate >= today) {
+                    counts[schedule.tutor_id] = (counts[schedule.tutor_id] || 0) + 1;
+                }
+            });
+            
+            // Обновляем счетчики в списке
+            {% for tutor in tutors %}
+            const count{{ tutor.id }} = counts[{{ tutor.id }}] || 0;
+            const badge{{ tutor.id }} = document.getElementById('tutor-count-{{ tutor.id }}');
+            if (badge{{ tutor.id }}) {
+                badge{{ tutor.id }}.textContent = count{{ tutor.id }};
+                badge{{ tutor.id }}.style.display = count{{ tutor.id }} > 0 ? 'inline' : 'none';
+            }
+            {% endfor %}
+        }
+
+        function updateCalendar() {
+            console.log('updateCalendar called', {currentYear, currentMonth});
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const startingDay = firstDay.getDay() || 7;
+            const monthLength = lastDay.getDate();
+            console.log('Calendar params:', {firstDay, lastDay, startingDay, monthLength});
+
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                              'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+            
+            document.getElementById('currentMonth').textContent = 
+                `${monthNames[currentMonth]} ${currentYear}`;
+
+            const grid = document.getElementById('calendarGrid');
+            // Удаляем все дни, оставляя заголовки дней недели
+            while (grid.children.length > 7) {
+                grid.removeChild(grid.lastChild);
+            }
+
+            // Пустые ячейки до первого дня месяца
+            for (let i = 1; i < startingDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day';
+                emptyDay.style.cursor = 'default';
+                grid.appendChild(emptyDay);
+            }
+
+            // Дни месяца
+            for (let day = 1; day <= monthLength; day++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'day-number';
+                dayNumber.textContent = day;
+                dayElement.appendChild(dayNumber);
+
+                // Форматируем дату без UTC конвертации
+                const yearStr = String(currentYear);
+                const monthStr = String(currentMonth + 1).padStart(2, '0');
+                const dayStr = String(day).padStart(2, '0');
+                const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
+                
+                // Фильтруем занятия по выбранному репетитору
+                let daySchedules = currentSchedules.filter(s => s.date === dateStr);
+                if (selectedTutorId !== 'all') {
+                    daySchedules = daySchedules.filter(s => s.tutor_id == selectedTutorId);
+                }
+                
+                // Проверяем, прошла ли дата
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const dateObj = new Date(currentYear, currentMonth, day);
+                const isPast = dateObj < today;
+                
+                // Добавляем индикаторы занятий
+                if (daySchedules.length > 0) {
+                    if (isPast) {
+                        dayElement.classList.add('past-lesson');
+                    } else {
+                        dayElement.classList.add('has-lesson');
+                    }
+                    
+                    const dotsContainer = document.createElement('div');
+                    dotsContainer.className = 'lesson-dots';
+                    
+                    // Показываем до 5 точек
+                    const dotsCount = Math.min(daySchedules.length, 5);
+                    for (let i = 0; i < dotsCount; i++) {
+                        const dot = document.createElement('div');
+                        dot.className = 'lesson-dot';
+                        dotsContainer.appendChild(dot);
+                    }
+                    
+                    if (daySchedules.length > 5) {
+                        const moreDots = document.createElement('div');
+                        moreDots.style.fontSize = '10px';
+                        moreDots.style.color = isPast ? '#888' : '#9c27b0';
+                        moreDots.textContent = `+${daySchedules.length - 5}`;
+                        dotsContainer.appendChild(moreDots);
+                    }
+                    
+                    dayElement.appendChild(dotsContainer);
+                }
+
+                // Выделяем сегодняшний день
+                const todayCheck = new Date();
+                if (day === todayCheck.getDate() && 
+                    currentMonth === todayCheck.getMonth() && 
+                    currentYear === todayCheck.getFullYear()) {
+                    dayElement.classList.add('today');
+                }
+
+                // Кнопка добавления занятия
+                const addBtn = document.createElement('button');
+                addBtn.className = 'add-lesson-btn';
+                addBtn.innerHTML = '+';
+                addBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    openAddLessonModal(dateStr);
+                };
+                dayElement.appendChild(addBtn);
+
+                // Клик по дню
+                dayElement.onclick = () => showDaySchedule(dateStr, daySchedules);
+                
+                grid.appendChild(dayElement);
+            }
+        }
+
+        let editingScheduleId = null; // Переменная для хранения ID редактируемого занятия
+
+        window.editSchedule = function(scheduleId) {
+            console.log('editSchedule вызвана с ID:', scheduleId);
+            // Найдем занятие по ID
+            const schedule = currentSchedules.find(s => s.id === scheduleId);
+            if (!schedule) {
+                alert('Занятие не найдено');
+                return;
+            }
+            
+            // Сохраним ID редактируемого занятия
+            editingScheduleId = scheduleId;
+            
+            // Установим выбранного репетитора
+            selectedTutorId = schedule.tutor_id;
+            
+            // Заполним скрытые поля
+            document.getElementById('lesson_date').value = schedule.date;
+            document.getElementById('lesson_tutor_id').value = schedule.tutor_id;
+            
+            // Заполним имя репетитора
+            const tutorName = document.getElementById('tutor_name');
+            if (tutorName) {
+                tutorName.value = schedule.tutor_name || 'Репетитор';
+            }
+            
+            // Загрузим учеников для этого репетитора
+            loadStudentsForTutor(schedule.tutor_id);
+            
+            // Подождем немного и заполним остальные поля
+            setTimeout(() => {
+                // Заполним видимые поля формы
+                document.getElementById('student_id').value = schedule.student_id;
+                document.getElementById('lesson_time').value = schedule.time;
+                document.getElementById('subject_id').value = schedule.subject_id;
+                
+                // Скрыть поля повторения и сделать их необязательными
+                document.getElementById('repeat_count').value = '1';
+                document.getElementById('repeat_count').removeAttribute('required');
+                const repeatGroup = document.querySelector('#repeat_count').closest('.mb-3');
+                if (repeatGroup) {
+                    repeatGroup.style.display = 'none';
+                }
+                
+                const endDateInfo = document.getElementById('end_date_info');
+                if (endDateInfo) {
+                    endDateInfo.textContent = '';
+                    endDateInfo.style.display = 'none';
+                }
+                
+                // Изменить заголовок модального окна с указанием даты
+                const [year, month, day] = schedule.date.split('-').map(Number);
+                const dateObj = new Date(year, month - 1, day);
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                const formattedDate = dateObj.toLocaleDateString('ru-RU', options);
+                
+                const modalTitle = document.querySelector('#addLessonModal .modal-title');
+                if (modalTitle) {
+                    modalTitle.textContent = `Редактирование занятия - ${formattedDate}`;
+                }
+                
+                // Изменить текст кнопки
+                const submitBtn = document.querySelector('#addLessonForm button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.textContent = 'Сохранить изменения';
+                }
+            }, 100);
+            
+            // Открыть модальное окно
+            if (addLessonModal) {
+                addLessonModal.show();
+            } else {
+                // Если модальное окно еще не инициализировано
+                addLessonModal = new bootstrap.Modal(document.getElementById('addLessonModal'));
+                addLessonModal.show();
+            }
+        }
+
+        window.deleteSchedule = function(scheduleId) {
+            if (confirm('Вы уверены, что хотите удалить это занятие?')) {
+                fetch(`/delete_schedule/${scheduleId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            loadMonthSchedule();
+                            if (selectedDate) {
+                                const schedules = currentSchedules.filter(s => s.date === selectedDate);
+                                showDaySchedule(selectedDate, schedules);
+                            }
+                        } else {
+                            alert(data.error || 'Ошибка при удалении занятия');
+                        }
+                    });
+            }
+        }
+
+        function showDaySchedule(dateStr, schedules) {
+            selectedDate = dateStr;
+            // Парсим дату правильно, чтобы избежать проблем с часовыми поясами
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const dateObj = new Date(year, month - 1, day);
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = dateObj.toLocaleDateString('ru-RU', options);
+            
+            // Обновляем заголовок и показываем кнопку возврата
+            document.getElementById('scheduleTitle').textContent = `Занятия на ${formattedDate}`;
+            document.getElementById('backToMonthBtn').style.display = 'block';
+            
+            const lessonsContainer = document.getElementById('scheduleContent');
+            lessonsContainer.innerHTML = '';
+            
+            if (!schedules || schedules.length === 0) {
+                lessonsContainer.innerHTML = '<p class="text-muted">Нет занятий в этот день</p>';
+                return;
+            }
+            
+            // Сортируем по времени
+            schedules.sort((a, b) => a.time.localeCompare(b.time));
+            
+            schedules.forEach(schedule => {
+                const lessonItem = document.createElement('div');
+                lessonItem.className = 'lesson-item';
+                lessonItem.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="lesson-time">${schedule.time}</div>
+                            <div class="fw-bold">${schedule.subject}</div>
+                            <div class="lesson-info">
+                                <i class="bi bi-person me-1"></i>${schedule.tutor_name}
+                                <i class="bi bi-arrow-right mx-2"></i>
+                                <i class="bi bi-person-fill me-1"></i>${schedule.student_name}
+                            </div>
+                        </div>
+                        <div>
+                            <button class="btn btn-icon btn-sm btn-outline-primary me-1" 
+                                    onclick="editSchedule(${schedule.id})">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-icon btn-sm btn-outline-danger" 
+                                    onclick="deleteSchedule(${schedule.id})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                lessonsContainer.appendChild(lessonItem);
+            });
+        }
+
+        function showMonthSchedule() {
+            selectedDate = null;
+            
+            // Обновляем заголовок и скрываем кнопку возврата
+            document.getElementById('scheduleTitle').textContent = 'Расписание на месяц';
+            document.getElementById('backToMonthBtn').style.display = 'none';
+            
+            const lessonsContainer = document.getElementById('scheduleContent');
+            lessonsContainer.innerHTML = '';
+            
+            // Фильтруем расписание по выбранному репетитору
+            let filteredSchedules = currentSchedules;
+            if (selectedTutorId !== 'all') {
+                filteredSchedules = currentSchedules.filter(s => s.tutor_id == selectedTutorId);
+            }
+            
+            // Фильтруем прошедшие занятия
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            filteredSchedules = filteredSchedules.filter(schedule => {
+                const [year, month, day] = schedule.date.split('-').map(Number);
+                const scheduleDate = new Date(year, month - 1, day);
+                return scheduleDate >= today;
+            });
+            
+            if (filteredSchedules.length === 0) {
+                lessonsContainer.innerHTML = '<p class="text-muted">Нет предстоящих занятий в этом месяце</p>';
+                return;
+            }
+            
+            // Группируем по дням
+            const groupedSchedules = {};
+            filteredSchedules.forEach(schedule => {
+                const date = schedule.date;
+                if (!groupedSchedules[date]) {
+                    groupedSchedules[date] = [];
+                }
+                groupedSchedules[date].push(schedule);
+            });
+            
+            // Сортируем даты
+            const sortedDates = Object.keys(groupedSchedules).sort();
+            
+            sortedDates.forEach(date => {
+                const daySchedules = groupedSchedules[date];
+                const [year, month, day] = date.split('-').map(Number);
+                const dateObj = new Date(year, month - 1, day);
+                const dayNames = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+                const dayName = dayNames[dateObj.getDay()];
+                const formattedDate = dateObj.toLocaleDateString('ru-RU', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                });
+
+                const dayHeader = document.createElement('h6');
+                dayHeader.className = 'text-primary mb-2 mt-3';
+                dayHeader.textContent = `${dayName}, ${formattedDate}`;
+                lessonsContainer.appendChild(dayHeader);
+
+                // Сортируем занятия по времени
+                daySchedules.sort((a, b) => a.time.localeCompare(b.time));
+
+                daySchedules.forEach(schedule => {
+                    const lessonItem = document.createElement('div');
+                    lessonItem.className = 'lesson-item';
+                    lessonItem.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="lesson-time">${schedule.time}</div>
+                                <div class="fw-bold">${schedule.subject}</div>
+                                <div class="lesson-info">
+                                    <i class="bi bi-person me-1"></i>${schedule.tutor_name}
+                                    <i class="bi bi-arrow-right mx-2"></i>
+                                    <i class="bi bi-person-fill me-1"></i>${schedule.student_name}
+                                </div>
+                            </div>
+                            <div>
+                                <button class="btn btn-icon btn-sm btn-outline-primary me-1" 
+                                        onclick="editSchedule(${schedule.id})">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-icon btn-sm btn-outline-danger" 
+                                        onclick="deleteSchedule(${schedule.id})">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    lessonsContainer.appendChild(lessonItem);
+                });
+            });
+        }
+
+        function openAddLessonModal(dateStr) {
+            if (selectedTutorId === 'all') {
+                alert('Пожалуйста, выберите конкретного репетитора из списка слева');
+                return;
+            }
+            
+            // Устанавливаем дату и репетитора
+            document.getElementById('lesson_date').value = dateStr;
+            document.getElementById('lesson_tutor_id').value = selectedTutorId;
+            
+            // Находим имя репетитора
+            const tutorElement = document.querySelector(`[data-tutor-id="${selectedTutorId}"]`);
+            const tutorName = tutorElement ? tutorElement.querySelector('span').textContent : '';
+            document.getElementById('tutor_name').value = tutorName;
+            
+            // Загружаем связанных учеников
+            loadStudentsForTutor(selectedTutorId);
+            
+            // Очищаем форму
+            document.getElementById('subject_id').value = '';
+            document.getElementById('lesson_time').value = '';
+            document.getElementById('repeat_count').value = '';
+            document.getElementById('end_date').value = '';
+            document.getElementById('end_date_info').textContent = 'Дата последнего занятия';
+            
+            addLessonModal.show();
+        }
+
+        function calculateEndDate() {
+            const startDate = document.getElementById('lesson_date').value;
+            const lessonsCount = parseInt(document.getElementById('repeat_count').value);
+            
+            if (startDate && lessonsCount && lessonsCount > 0) {
+                // Парсим дату корректно
+                const [year, month, day] = startDate.split('-').map(Number);
+                const startDateObj = new Date(year, month - 1, day);
+                
+                // Создаем новую дату для последнего занятия
+                const endDate = new Date(startDateObj);
+                // Добавляем недели: (количество занятий - 1) * 7 дней
+                endDate.setDate(endDate.getDate() + (lessonsCount - 1) * 7);
+                
+                // Форматируем дату в YYYY-MM-DD
+                const endYear = endDate.getFullYear();
+                const endMonth = String(endDate.getMonth() + 1).padStart(2, '0');
+                const endDay = String(endDate.getDate()).padStart(2, '0');
+                
+                const endDateInput = document.getElementById('end_date');
+                endDateInput.value = `${endYear}-${endMonth}-${endDay}`;
+                
+                // Обновляем информацию
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                const formattedDate = endDate.toLocaleDateString('ru-RU', options);
+                document.getElementById('end_date_info').textContent = `Последнее занятие: ${formattedDate}`;
+            }
+        }
+
+        function calculateWeeksCount() {
+            const startDate = document.getElementById('lesson_date').value;
+            const endDate = document.getElementById('end_date').value;
+            
+            if (startDate && endDate) {
+                const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+                const start = new Date(startYear, startMonth - 1, startDay);
+                const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+                const end = new Date(endYear, endMonth - 1, endDay);
+                
+                if (end >= start) {
+                    const diffTime = Math.abs(end - start);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    const lessonsCount = Math.floor(diffDays / 7) + 1; // +1 так как включаем первое занятие
+                    
+                    document.getElementById('repeat_count').value = lessonsCount;
+                    
+                    // Обновляем информацию
+                    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                    const formattedDate = end.toLocaleDateString('ru-RU', options);
+                    document.getElementById('end_date_info').textContent = `Последнее занятие: ${formattedDate} (${lessonsCount} занятий)`;
+                } else {
+                    alert('Крайняя дата должна быть позже даты первого занятия');
+                    document.getElementById('end_date').value = '';
+                    document.getElementById('repeat_count').value = '';
+                }
+            }
+        }
+
+        function loadStudentsForTutor(tutorId) {
+            // Загружаем учеников, связанных с этим репетитором
+            fetch(`/api/tutor_students/${tutorId}`)
+                .then(response => response.json())
+                .then(students => {
+                    const select = document.getElementById('student_id');
+                    select.innerHTML = '<option value="">Выберите ученика</option>';
+                    students.forEach(student => {
+                        const option = document.createElement('option');
+                        option.value = student.id;
+                        option.textContent = student.description;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(() => {
+                    // Если endpoint не существует, загружаем всех учеников
+                    const select = document.getElementById('student_id');
+                    select.innerHTML = '<option value="">Выберите ученика</option>';
+                    {% for student in students %}
+                    const option{{ student.id }} = document.createElement('option');
+                    option{{ student.id }}.value = '{{ student.id }}';
+                    option{{ student.id }}.textContent = '{{ student.description }}';
+                    select.appendChild(option{{ student.id }});
+                    {% endfor %}
+                });
+        }
+
+        // Обработка формы добавления/редактирования занятия  
+        document.getElementById('addLessonForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            // Определяем URL в зависимости от режима
+            let url = '/add_schedule';
+            if (editingScheduleId) {
+                url = `/update_schedule/${editingScheduleId}`;
+            }
+            
+            fetch(url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    addLessonModal.hide();
+                    
+                    // Сбрасываем режим редактирования
+                    editingScheduleId = null;
+                    
+                    // Восстанавливаем заголовок и кнопку
+                    document.querySelector('#addLessonModal .modal-title').textContent = 'Добавить занятие';
+                    const submitBtn = document.querySelector('#addLessonForm button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.textContent = 'Добавить';
+                    }
+                    
+                    // Показываем поля повторения обратно
+                    document.getElementById('repeat_count').setAttribute('required', 'required');
+                    const repeatGroup = document.querySelector('#repeat_count').closest('.mb-3');
+                    if (repeatGroup) {
+                        repeatGroup.style.display = '';
+                    }
+                    
+                    // Показываем уведомление если есть сообщение
+                    if (data.message) {
+                        showNotification(data.message, 'success');
+                    }
+                    
+                    // Очищаем форму
+                    this.reset();
+                    
+                    loadMonthSchedule();
+                    if (selectedDate) {
+                        const schedules = currentSchedules.filter(s => s.date === selectedDate);
+                        showDaySchedule(selectedDate, schedules);
+                    }
+                } else {
+                    alert(data.error || 'Ошибка при сохранении занятия');
+                }
+            });
+        });
+        
+        function showNotification(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        function previousMonth() {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            loadMonthSchedule();
+            showMonthSchedule(); // Показываем расписание на месяц при смене месяца
+        }
+
+        function nextMonth() {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            loadMonthSchedule();
+            showMonthSchedule(); // Показываем расписание на месяц при смене месяца
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Предметы - Админ-панель</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .gradient-purple {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+
+        .gradient-red {
+            background: linear-gradient(-45deg, #b71c1c, #c62828, #d32f2f, #e53935);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            background-color: #1e1e1e;
+        }
+        .card {
+            background-color: #252526;
+            border-color: #333;
+        }
+        .card-header {
+            background-color: #333;
+            border-color: #333;
+            color: #d4d4d4;
+        }
+        .table {
+            color: #d4d4d4;
+        }
+        .table td, .table th {
+            border-color: #333;
+        }
+        .form-control, .form-select {
+            background-color: #3c3c3c;
+            border-color: #333;
+            color: #d4d4d4;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #3c3c3c;
+            border-color: #9c27b0;
+            color: #d4d4d4;
+        }
+        .modal-content {
+            background-color: #252526;
+            color: #d4d4d4;
+        }
+        .modal-header {
+            border-color: #333;
+        }
+        .modal-footer {
+            border-color: #333;
+        }
+        .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            min-width: 300px;
+            background-color: #252526;
+            border-color: #333;
+            color: #d4d4d4;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .alert-success {
+            background-color: #1e3a1e;
+            border-color: #2d4d2d;
+        }
+        .btn-primary {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(-45deg, #7b1fa2, #8e24aa, #6a1b9a, #9c27b0);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+        }
+        .btn-danger {
+            background: linear-gradient(-45deg, #b71c1c, #c62828, #d32f2f, #e53935);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+        }
+        .btn-danger:hover {
+            background: linear-gradient(-45deg, #c62828, #d32f2f, #b71c1c, #e53935);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+        }
+        .btn-outline-primary {
+            color: #9c27b0;
+            border-color: #9c27b0;
+        }
+        .btn-outline-primary:hover {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+            color: white;
+        }
+        .btn-outline-danger {
+            color: #d32f2f;
+            border-color: #d32f2f;
+        }
+        .btn-outline-danger:hover {
+            background: linear-gradient(-45deg, #b71c1c, #c62828, #d32f2f, #e53935);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+            color: white;
+        }
+        .btn-icon {
+            padding: 0.375rem 0.75rem;
+            font-size: 1.1rem;
+            line-height: 1;
+            border-radius: 0.25rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-width: 2px;
+        }
+        
+        /* Боковая панель */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 70px;
+            background-color: #252526;
+            border-right: 1px solid #333;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 40px;
+        }
+        
+        .sidebar-icon {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            background-color: #3c3c3c;
+            text-decoration: none;
+            color: #d4d4d4;
+        }
+        
+        .sidebar-icon:hover {
+            background-color: #4c4c4c;
+            transform: scale(1.1);
+            color: white;
+        }
+        
+        .sidebar-icon.active {
+            background-color: #6a1b9a;
+            box-shadow: 0 0 15px rgba(156, 39, 176, 0.4);
+            color: white;
+        }
+        
+        .sidebar-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+        
+        .main-content {
+            margin-left: 70px;
+            margin-top: 20px;
+            padding-top: 40px;
+        }
+        
+        /* Анимации для блоков */
+        .card {
+            animation: slideDown 0.6s ease-out;
+            border: 2px solid transparent;
+            background: linear-gradient(45deg, #252526, #252526) padding-box,
+                        linear-gradient(45deg, #6a1b9a, #9c27b0) border-box;
+            transition: all 0.3s ease;
+        }
+        
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        
+        .card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(156, 39, 176, 0.3);
+            border-color: #9c27b0;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Вертикальная боковая панель -->
+    <div class="sidebar">
+        <a href="{{ url_for('admin_users') }}" class="sidebar-icon" title="Пользователи">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_pairs') }}" class="sidebar-icon" title="Пары">
+            <svg viewBox="0 0 24 24">
+                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_schedule') }}" class="sidebar-icon" title="Расписание">
+            <svg viewBox="0 0 24 24">
+                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_subjects') }}" class="sidebar-icon active" title="Предметы">
+            <svg viewBox="0 0 24 24">
+                <path d="M21,5c-1.11-0.35-2.33-0.5-3.5-0.5c-1.95,0-4.05,0.4-5.5,1.5c-1.45-1.1-3.55-1.5-5.5-1.5S2.45,4.9,1,6v14.65c0,0.25,0.25,0.5,0.5,0.5c0.1,0,0.15-0.05,0.25-0.05C3.1,20.45,5.05,20,6.5,20c1.95,0,4.05,0.4,5.5,1.5c1.35-0.85,3.8-1.5,5.5-1.5c1.65,0,3.35,0.3,4.75,1.05c0.1,0.05,0.15,0.05,0.25,0.05c0.25,0,0.5-0.25,0.5-0.5V6C22.4,5.55,21.75,5.25,21,5z M21,18.5c-1.1-0.35-2.3-0.5-3.5-0.5c-1.7,0-4.15,0.65-5.5,1.5V8c1.35-0.85,3.8-1.5,5.5-1.5c1.2,0,2.4,0.15,3.5,0.5V18.5z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_settings') }}" class="sidebar-icon" title="Настройки">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.65-.07-.97l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.88 2.28 14.5 2 14.12 2h-4c-.38 0-.76.28-.84.66l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.32-.07.65-.07.97 0 .33.03.65.07.97l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.08.38.46.66.84.66h4c.38 0 .76-.28.84-.66l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65z"/>
+            </svg>
+        </a>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h4><i class="bi bi-book-plus me-2"></i>Добавить предмет</h4>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('add_subject') }}" id="addSubjectForm">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <input type="text" class="form-control" name="name" placeholder="Название предмета" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="bi bi-plus-lg me-2"></i>Добавить
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h4><i class="bi bi-book me-2"></i>Список предметов</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Название</th>
+                                            <th>Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for subject in subjects %}
+                                            <tr>
+                                                <td>{{ subject.id }}</td>
+                                                <td>{{ subject.name }}</td>
+                                                <td>
+                                                    <button type="button" class="btn btn-icon btn-outline-primary me-2" 
+                                                            data-bs-toggle="modal" 
+                                                            data-bs-target="#editModal{{ subject.id }}">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <a href="{{ url_for('delete_subject', id=subject.id) }}" 
+                                                       class="btn btn-icon btn-outline-danger"
+                                                       onclick="return confirm('Вы уверены, что хотите удалить этот предмет?')">
+                                                        <i class="bi bi-trash"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+
+                                            <!-- Модальное окно для редактирования -->
+                                            <div class="modal fade" id="editModal{{ subject.id }}" tabindex="-1">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">Редактировать предмет</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <form method="POST" action="{{ url_for('edit_subject', id=subject.id) }}">
+                                                                <div class="mb-3">
+                                                                    <label for="edit_name{{ subject.id }}" class="form-label">Название</label>
+                                                                    <input type="text" class="form-control" id="edit_name{{ subject.id }}" 
+                                                                           name="name" value="{{ subject.name }}" required>
+                                                                </div>
+                                                                <button type="submit" class="btn btn-primary">Сохранить</button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Обработка формы добавления предмета
+        document.addEventListener('DOMContentLoaded', function() {
+            const addSubjectForm = document.getElementById('addSubjectForm');
+            if (addSubjectForm) {
+                addSubjectForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(this);
+                    
+                    fetch('/add_subject', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showAlert(data.message, 'success');
+                            this.reset();
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1000);
+                        } else {
+                            showAlert(data.error, 'danger');
+                        }
+                    })
+                    .catch(error => {
+                        showAlert('Ошибка при добавлении предмета', 'danger');
+                    });
+                });
+            }
+        });
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            const container = document.querySelector('.container');
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 3000);
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Расписание</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            padding: 20px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 576px) {
+            .container {
+                padding: 15px;
+            }
+
+            .calendar {
+                padding: 10px;
+            }
+
+            .calendar-day {
+                font-size: 0.9rem;
+            }
+
+            .schedule-item {
+                padding: 12px;
+            }
+
+            .schedule-item .subject {
+                font-size: 1rem;
+            }
+
+            .schedule-item .time {
+                font-size: 0.85rem;
+            }
+
+            .accordion-button {
+                font-size: 1rem;
+                padding: 12px;
+            }
+        }
+
+        @media (min-width: 577px) and (max-width: 768px) {
+            .container {
+                max-width: 600px;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .container {
+                max-width: 800px;
+            }
+        }
+
+        .schedule-list {
+            margin-top: 15px;
+        }
+
+        .schedule-item {
+            background-color: #252526;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .schedule-item .subject {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .schedule-item .time {
+            color: #9c27b0;
+            font-size: 0.9rem;
+        }
+
+        .schedule-item .date {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        @keyframes light-move {
+            0% { background-position: 0% 0%; }
+            25% { background-position: 100% 0%; }
+            50% { background-position: 100% 100%; }
+            75% { background-position: 0% 100%; }
+            100% { background-position: 0% 0%; }
+        }
+
+        .schedule-item {
+            background-color: #6a1b9a;
+            background-image: radial-gradient(circle at center, 
+                rgba(255, 255, 255, 0.15) 0%,
+                rgba(255, 255, 255, 0.05) 30%,
+                rgba(0, 0, 0, 0.05) 60%,
+                rgba(0, 0, 0, 0.1) 80%,
+                rgba(0, 0, 0, 0.05) 100%);
+            background-size: 300% 300%;
+            animation: light-move 36s ease-in-out infinite;
+        }
+
+        .schedule-item .subject {
+            color: white;
+            text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .schedule-item .time {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .schedule-item .date {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .schedule-item .person {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .accordion {
+            background-color: #1e1e1e;
+            border: none;
+        }
+
+        .accordion-item {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+        }
+
+        .accordion-button {
+            background-color: #252526;
+            color: #d4d4d4;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .accordion-button:not(.collapsed) {
+            background-color: #6a1b9a;
+            color: white;
+        }
+
+        .accordion-button::after {
+            filter: invert(1);
+        }
+
+        .accordion-body {
+            background-color: #1e1e1e;
+        }
+
+        .calendar {
+            background-color: #252526;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .calendar-header {
+            color: #d4d4d4;
+        }
+
+        .calendar-header button {
+            color: #9c27b0;
+            border-color: #9c27b0;
+        }
+
+        .calendar-header button:hover {
+            background-color: #9c27b0;
+            color: white;
+        }
+
+        .calendar-grid {
+            margin-top: 10px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #1e1e1e;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #d4d4d4;
+            position: relative;
+            padding: 5px;
+        }
+
+        .calendar-day:hover {
+            background-color: #333;
+        }
+
+        .calendar-day.today {
+            background-color: #4caf50;
+            box-shadow: 0 0 0 2px #2e7d32;
+            font-weight: bold;
+            color: white;
+        }
+
+        .calendar-day.today.has-lesson {
+            background: linear-gradient(45deg, #4caf50, #66bb6a);
+            box-shadow: 0 0 0 2px #2e7d32;
+            color: white;
+        }
+
+        .calendar-day.has-lesson {
+            background: linear-gradient(45deg, #6a1b9a, #9c27b0);
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 0 10px rgba(156, 39, 176, 0.3);
+            position: relative;
+        }
+
+        .calendar-day.has-lesson:hover {
+            background: linear-gradient(45deg, #9c27b0, #6a1b9a);
+            transform: scale(1.05);
+        }
+        
+        .calendar-day.past-lesson {
+            background: linear-gradient(45deg, #757575, #9e9e9e);
+            color: white;
+            font-weight: 500;
+            opacity: 0.7;
+            position: relative;
+        }
+
+        .calendar-day.past-lesson:hover {
+            background: linear-gradient(45deg, #9e9e9e, #757575);
+            transform: scale(1.02);
+            opacity: 0.8;
+        }
+
+        .lesson-dots {
+            position: absolute;
+            bottom: 3px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 2px;
+        }
+
+        .lesson-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .calendar-day:not(.has-lesson) .lesson-dot {
+            background-color: #9c27b0;
+        }
+
+        #dayLessons {
+            margin-top: 20px;
+        }
+
+        #dayLessons .text-muted {
+            color: #666 !important;
+        }
+
+        .day-lessons-header {
+            color: #d4d4d4;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Информация о часовом поясе -->
+        <div style="background-color: #252526; border-radius: 8px; padding: 10px 15px; margin-bottom: 15px; border: 1px solid #333;">
+            <div style="text-align: center; color: #9c27b0; font-size: 0.9rem;">
+                <i class="bi bi-clock"></i> 
+                {% if user_timezone == 'Europe/Moscow' %}
+                    🇷🇺 Время указано в часовом поясе: Москва (UTC+3)
+                {% elif user_timezone == 'Europe/Saratov' %}
+                    🇷🇺 Время указано в часовом поясе: Саратов (UTC+4)
+                {% elif user_timezone == 'Asia/Yekaterinburg' %}
+                    🇷🇺 Время указано в часовом поясе: Екатеринбург (UTC+5)
+                {% elif user_timezone == 'Asia/Omsk' %}
+                    🇷🇺 Время указано в часовом поясе: Омск (UTC+6)
+                {% elif user_timezone == 'Asia/Krasnoyarsk' %}
+                    🇷🇺 Время указано в часовом поясе: Красноярск (UTC+7)
+                {% elif user_timezone == 'Asia/Irkutsk' %}
+                    🇷🇺 Время указано в часовом поясе: Иркутск (UTC+8)
+                {% elif user_timezone == 'Asia/Yakutsk' %}
+                    🇷🇺 Время указано в часовом поясе: Якутск (UTC+9)
+                {% elif user_timezone == 'Asia/Vladivostok' %}
+                    🇷🇺 Время указано в часовом поясе: Владивосток (UTC+10)
+                {% elif user_timezone == 'Asia/Magadan' %}
+                    🇷🇺 Время указано в часовом поясе: Магадан (UTC+11)
+                {% elif user_timezone == 'Asia/Kamchatka' %}
+                    🇷🇺 Время указано в часовом поясе: Камчатка (UTC+12)
+                {% elif user_timezone == 'Europe/Kaliningrad' %}
+                    🇷🇺 Время указано в часовом поясе: Калининград (UTC+2)
+                {% else %}
+                    🌍 Время указано в вашем часовом поясе
+                {% endif %}
+            </div>
+            <div style="text-align: center; color: #888; font-size: 0.75rem; margin-top: 5px;">
+                Изменить часовой пояс можно в настройках бота
+            </div>
+        </div>
+        
+        <div class="accordion" id="scheduleAccordion">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingList">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseList" aria-expanded="false" aria-controls="collapseList">
+                        Расписание
+                    </button>
+                </h2>
+                <div id="collapseList" class="accordion-collapse collapse" aria-labelledby="headingList" data-bs-parent="#scheduleAccordion">
+                    <div class="accordion-body">
+                        <div class="schedule-list">
+                            {% for schedule in schedules %}
+                                {% if not schedule.get('is_past', False) %}
+                                <div class="schedule-item">
+                                    <div class="subject">{{ schedule.subject }}</div>
+                                    <div class="time">{{ schedule.time }}</div>
+                                    <div class="date">{{ schedule.date }}</div>
+                                    <div class="person">
+                                        {% if user.status == 'репетитор' %}
+                                            Ученик: {{ schedule.student }}
+                                        {% else %}
+                                            Репетитор: {{ schedule.tutor }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="calendar mt-4">
+            <div class="calendar-header d-flex justify-content-between align-items-center mb-2">
+                <button class="btn btn-outline-primary btn-sm" id="prevMonth">&lt;</button>
+                <h5 id="currentMonth" class="mb-0"></h5>
+                <button class="btn btn-outline-primary btn-sm" id="nextMonth">&gt;</button>
+            </div>
+            <div class="calendar-grid" id="calendarGrid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px;"></div>
+            <div id="dayLessons" class="mt-3"></div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- Календарь ---
+        const schedules = [
+            {% for schedule in schedules %}
+            {
+                subject: "{{ schedule.subject }}",
+                time: "{{ schedule.time }}",
+                date: "{{ schedule.date }}",
+                is_past: {{ schedule.is_past|default(false)|tojson }}
+            },
+            {% endfor %}
+        ];
+        function parseDate(str) {
+            const [day, month, year] = str.split('.');
+            return new Date(year, month - 1, day);
+        }
+        let currentDate = new Date();
+        let currentMonth = currentDate.getMonth();
+        let currentYear = currentDate.getFullYear();
+        function renderCalendar() {
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+            document.getElementById('currentMonth').textContent = `${monthNames[currentMonth]} ${currentYear}`;
+            const grid = document.getElementById('calendarGrid');
+            grid.innerHTML = '';
+            
+            // Дни недели
+            ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].forEach(d => {
+                const el = document.createElement('div');
+                el.className = 'calendar-day';
+                el.textContent = d;
+                el.style.background = 'none';
+                el.style.color = '#aaa';
+                el.style.cursor = 'default';
+                grid.appendChild(el);
+            });
+            
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            let startDay = firstDay.getDay();
+            if (startDay === 0) startDay = 7;
+            const monthLength = new Date(currentYear, currentMonth + 1, 0).getDate();
+            
+            // Пустые ячейки до начала месяца
+            for (let i = 1; i < startDay; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'calendar-day';
+                grid.appendChild(empty);
+            }
+            
+            // Текущая дата
+            const today = new Date();
+            const isCurrentMonth = currentMonth === today.getMonth() && currentYear === today.getFullYear();
+            const currentDay = today.getDate();
+            
+            // Дни месяца
+            for (let day = 1; day <= monthLength; day++) {
+                // Форматируем дату в формате dd.mm.yyyy
+                const dayStr = String(day).padStart(2, '0');
+                const monthStr = String(currentMonth + 1).padStart(2, '0');
+                const yearStr = String(currentYear);
+                const dateStr = `${dayStr}.${monthStr}.${yearStr}`;
+                const dayLessons = schedules.filter(s => s.date === dateStr);
+                
+                const el = document.createElement('div');
+                el.className = 'calendar-day';
+                
+                // Создаем контейнер для числа
+                const dayNumber = document.createElement('span');
+                dayNumber.textContent = day;
+                el.appendChild(dayNumber);
+                
+                // Отмечаем текущий день
+                if (isCurrentMonth && day === currentDay) {
+                    el.classList.add('today');
+                }
+                
+                // Если есть занятия
+                if (dayLessons.length > 0) {
+                    // Проверяем, все ли занятия в этот день прошедшие
+                    const allPast = dayLessons.every(s => s.is_past);
+                    
+                    if (allPast) {
+                        el.classList.add('past-lesson');
+                    } else {
+                        el.classList.add('has-lesson');
+                    }
+                    el.setAttribute('data-lessons', dayLessons.length);
+                    
+                    // Добавляем точки-индикаторы для нескольких занятий
+                    if (dayLessons.length > 1) {
+                        const dotsContainer = document.createElement('div');
+                        dotsContainer.className = 'lesson-dots';
+                        
+                        // Максимум 3 точки
+                        const dotsCount = Math.min(dayLessons.length, 3);
+                        for (let i = 0; i < dotsCount; i++) {
+                            const dot = document.createElement('div');
+                            dot.className = 'lesson-dot';
+                            dotsContainer.appendChild(dot);
+                        }
+                        
+                        el.appendChild(dotsContainer);
+                    }
+                }
+                
+                el.onclick = () => showDayLessons(dateStr, day);
+                grid.appendChild(el);
+            }
+        }
+        function showDayLessons(dateStr, dayNum) {
+            // Показываем только непрошедшие занятия в детальном просмотре
+            const dayLessons = schedules.filter(s => s.date === dateStr && !s.is_past);
+            const container = document.getElementById('dayLessons');
+            if (dayLessons.length === 0) {
+                container.innerHTML = '<div class="text-muted">Нет занятий в этот день</div>';
+                return;
+            }
+            // Используем переданный день вместо даты из dateStr для корректного отображения
+            const displayDate = new Date(currentYear, currentMonth, dayNum);
+            const formattedDate = displayDate.toLocaleDateString('ru-RU', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+            container.innerHTML = `
+                <div class="day-lessons-header">
+                    Занятия на ${formattedDate}
+                </div>
+                ${dayLessons.map(s => `
+                    <div class="schedule-item mb-2">
+                        <div class="subject">${s.subject}</div>
+                        <div class="time">${s.time}</div>
+                    </div>
+                `).join('')}
+            `;
+        }
+        document.getElementById('prevMonth').onclick = function() {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar();
+            document.getElementById('dayLessons').innerHTML = '';
+        };
+        document.getElementById('nextMonth').onclick = function() {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar();
+            document.getElementById('dayLessons').innerHTML = '';
+        };
+        renderCalendar();
+    </script>
+</body>
+</html> 

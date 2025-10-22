@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Расписание</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+        }
+        .user-info {
+            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .user-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .user-description {ё
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #999999);
+        }
+        .next-lesson {
+            background-color: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .next-lesson-time {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .next-lesson-info {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .calendar {
+            margin-top: 20px;
+        }
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+        .calendar-day {
+            text-align: center;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .calendar-day.has-lesson {
+            background-color: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+        .calendar-day.today {
+            background-color: #e3f2fd;
+            font-weight: bold;
+            box-shadow: 0 0 0 2px var(--tg-theme-button-color, #2481cc);
+        }
+        .calendar-day.today.has-lesson {
+            background-color: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+        }
+        .lesson-dots {
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 2px;
+        }
+        .lesson-dot {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background-color: var(--tg-theme-button-text-color, #ffffff);
+        }
+        .calendar-day:not(.has-lesson) .lesson-dot {
+            background-color: var(--tg-theme-button-color, #2481cc);
+        }
+        .schedule-list {
+            margin-top: 20px;
+        }
+        .schedule-item {
+            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .schedule-day {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .schedule-time {
+            color: var(--tg-theme-hint-color, #999999);
+            margin-bottom: 5px;
+        }
+        .schedule-subject {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color, #999999);
+        }
+        .no-schedule {
+            text-align: center;
+            color: var(--tg-theme-hint-color, #999999);
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="user-info">
+        <div class="user-name">{{ user.telegram_id }}</div>
+        <div class="user-description">{{ user.description }}</div>
+    </div>
+
+    {% if schedules %}
+        {% set next_lesson = schedules[0] %}
+        <div class="next-lesson">
+            <div class="next-lesson-time">{{ next_lesson.time }}</div>
+            <div class="next-lesson-info">
+                {% if next_lesson.days_until == 0 %}
+                    Через {{ next_lesson.hours_until }} часов
+                {% else %}
+                    Через {{ next_lesson.days_until }} дней
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="calendar">
+        <div class="calendar-header">
+            <button onclick="previousMonth()">&lt;</button>
+            <span id="currentMonth"></span>
+            <button onclick="nextMonth()">&gt;</button>
+        </div>
+        <div class="calendar-grid" id="calendarGrid">
+            <!-- Дни недели -->
+            <div class="calendar-day">Пн</div>
+            <div class="calendar-day">Вт</div>
+            <div class="calendar-day">Ср</div>
+            <div class="calendar-day">Чт</div>
+            <div class="calendar-day">Пт</div>
+            <div class="calendar-day">Сб</div>
+            <div class="calendar-day">Вс</div>
+            <!-- Дни месяца будут добавлены через JavaScript -->
+        </div>
+    </div>
+
+    <div class="schedule-list">
+        {% if schedules %}
+            {% for schedule in schedules %}
+                <div class="schedule-item">
+                    <div class="schedule-day">
+                        {% if schedule.day == 0 %}Понедельник
+                        {% elif schedule.day == 1 %}Вторник
+                        {% elif schedule.day == 2 %}Среда
+                        {% elif schedule.day == 3 %}Четверг
+                        {% elif schedule.day == 4 %}Пятница
+                        {% elif schedule.day == 5 %}Суббота
+                        {% elif schedule.day == 6 %}Воскресенье
+                        {% endif %}
+                    </div>
+                    <div class="schedule-time">{{ schedule.time }}</div>
+                    <div class="schedule-subject">{{ schedule.subject }}</div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-schedule">
+                У вас пока нет запланированных занятий
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let currentDate = new Date();
+        let currentMonth = currentDate.getMonth();
+        let currentYear = currentDate.getFullYear();
+        
+        // Получаем данные расписания из шаблона
+        const schedulesData = {{ schedules|tojson }};
+
+        function updateCalendar() {
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const startingDay = firstDay.getDay() || 7; // Преобразуем воскресенье (0) в 7
+            const monthLength = lastDay.getDate();
+
+            const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+                              'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+            
+            document.getElementById('currentMonth').textContent = 
+                `${monthNames[currentMonth]} ${currentYear}`;
+
+            const grid = document.getElementById('calendarGrid');
+            // Очищаем сетку, оставляя только заголовки дней недели
+            while (grid.children.length > 7) {
+                grid.removeChild(grid.lastChild);
+            }
+
+            // Создаем объект для подсчета занятий по датам
+            const lessonsPerDate = {};
+            
+            // Подсчитываем количество занятий для каждой даты
+            schedulesData.forEach(schedule => {
+                // Преобразуем дату из формата строки в объект Date
+                if (schedule.date) {
+                    const scheduleDate = new Date(schedule.date);
+                    const dateKey = `${scheduleDate.getFullYear()}-${scheduleDate.getMonth()}-${scheduleDate.getDate()}`;
+                    lessonsPerDate[dateKey] = (lessonsPerDate[dateKey] || 0) + 1;
+                }
+            });
+
+            // Добавляем пустые ячейки для выравнивания
+            for (let i = 1; i < startingDay; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.className = 'calendar-day';
+                grid.appendChild(emptyDay);
+            }
+
+            // Добавляем дни месяца
+            for (let day = 1; day <= monthLength; day++) {
+                const dayElement = document.createElement('div');
+                dayElement.className = 'calendar-day';
+                
+                // Создаем контейнер для числа
+                const dayNumber = document.createElement('span');
+                dayNumber.textContent = day;
+                dayElement.appendChild(dayNumber);
+
+                // Создаем дату для текущего дня
+                const currentCellDate = new Date(currentYear, currentMonth, day);
+                const dateKey = `${currentYear}-${currentMonth}-${day}`;
+                const lessonCount = lessonsPerDate[dateKey] || 0;
+                
+                // Если есть занятия в этот день
+                if (lessonCount > 0) {
+                    dayElement.classList.add('has-lesson');
+                    
+                    // Добавляем точки-индикаторы для нескольких занятий
+                    if (lessonCount > 1) {
+                        const dotsContainer = document.createElement('div');
+                        dotsContainer.className = 'lesson-dots';
+                        
+                        // Максимум 3 точки (если больше 3 занятий, показываем 3 точки)
+                        const dotsCount = Math.min(lessonCount, 3);
+                        for (let i = 0; i < dotsCount; i++) {
+                            const dot = document.createElement('div');
+                            dot.className = 'lesson-dot';
+                            dotsContainer.appendChild(dot);
+                        }
+                        
+                        dayElement.appendChild(dotsContainer);
+                    }
+                }
+
+                // Отмечаем текущий день
+                if (day === currentDate.getDate() && 
+                    currentMonth === currentDate.getMonth() && 
+                    currentYear === currentDate.getFullYear()) {
+                    dayElement.classList.add('today');
+                }
+
+                grid.appendChild(dayElement);
+            }
+        }
+
+        function previousMonth() {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            updateCalendar();
+        }
+
+        function nextMonth() {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            updateCalendar();
+        }
+
+        // Инициализируем календарь
+        updateCalendar();
+    </script>
+</body>
+</html> 
