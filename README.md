@@ -34,6 +34,7 @@ cp .env.example .env
 - `TELEGRAM_BOT_TOKEN` - токен вашего Telegram бота
 
 
+
 4. Запустите установку:
 ```bash
 chmod +x scripts/setup.sh
