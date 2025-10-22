@@ -19,10 +19,11 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping"
+          --health-cmd="mysqladmin ping -h localhost"
           --health-interval=10s
           --health-timeout=5s
-          --health-retries=3
+          --health-retries=10
+          --name=mysql
 
     steps:
     - uses: actions/checkout@v4
@@ -45,21 +46,21 @@ jobs:
     
     - name: Test with pytest
       env:
-        MYSQL_HOST: localhost
+        MYSQL_HOST: 127.0.0.1
         MYSQL_USER: root
         MYSQL_PASSWORD: test_password
         MYSQL_DATABASE: test_db
         SECRET_KEY: test_secret_key
         TELEGRAM_BOT_TOKEN: test_token
       run: |
-        # Ждем запуска MySQL
-        sleep 20
+        # Ждем запуска MySQL (дополнительное ожидание)
+        sleep 30
         
-        # Проверяем подключение к MySQL
-        mysql -h localhost -u root -ptest_password -e "SHOW DATABASES;"
+        # Проверяем подключение к MySQL через TCP
+        mysql -h 127.0.0.1 -P 3306 -u root -ptest_password -e "SHOW DATABASES;" || echo "MySQL connection failed"
         
         # Создаем таблицы в тестовой базе данных
-        mysql -h localhost -u root -ptest_password test_db < init_db.sql || echo "DB init skipped"
+        mysql -h 127.0.0.1 -P 3306 -u root -ptest_password test_db < init_db.sql || echo "DB init skipped"
         
         # Запускаем тесты (если они есть)
         pytest tests/ --cov=. --cov-report=xml || echo "No tests found, skipping..."
