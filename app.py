@@ -95,6 +95,8 @@ class Schedule(db.Model):
     date = db.Column(db.Date, nullable=False)
     time = db.Column(db.Time, nullable=False)
     subject_id = db.Column(db.Integer, db.ForeignKey('subject.id', ondelete='CASCADE'), nullable=False)
+    lesson_type = db.Column(db.String(20), default='regular')  # 'regular' или 'trial'
+    duration_minutes = db.Column(db.Integer, default=60)  # продолжительность в минутах
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Отношения
@@ -355,10 +357,14 @@ def add_schedule():
     date = request.form.get('date')
     time = request.form.get('time')
     subject_id = request.form.get('subject_id')
+    lesson_type = request.form.get('lesson_type', 'regular')  # 'regular' или 'trial'
     repeat_count = request.form.get('repeat_count')
     
     if not all([tutor_id, student_id, date, time, subject_id]):
         return jsonify({'success': False, 'error': 'Пожалуйста, заполните все поля'})
+    
+    # Определяем продолжительность в зависимости от типа занятия
+    duration_minutes = 30 if lesson_type == 'trial' else 60
     
     try:
         # Проверяем, существуют ли пользователи
@@ -401,7 +407,9 @@ def add_schedule():
                     student_id=student_id,
                     date=current_date,
                     time=lesson_time,
-                    subject_id=subject_id
+                    subject_id=subject_id,
+                    lesson_type=lesson_type,
+                    duration_minutes=duration_minutes
                 )
                 db.session.add(new_schedule)
                 created_count += 1
@@ -429,9 +437,13 @@ def edit_schedule(id):
     date = request.form.get('date')
     time = request.form.get('time')
     subject_id = request.form.get('subject_id')
+    lesson_type = request.form.get('lesson_type', schedule.lesson_type)
     
     if not all([date, time, subject_id]):
         return jsonify({'success': False, 'error': 'Пожалуйста, заполните все поля'})
+    
+    # Определяем продолжительность в зависимости от типа занятия
+    duration_minutes = 30 if lesson_type == 'trial' else 60
     
     try:
         lesson_date = datetime.strptime(date, '%Y-%m-%d').date()
@@ -451,6 +463,8 @@ def edit_schedule(id):
         schedule.date = lesson_date
         schedule.time = datetime.strptime(time, '%H:%M').time()
         schedule.subject_id = subject_id
+        schedule.lesson_type = lesson_type
+        schedule.duration_minutes = duration_minutes
         
         db.session.commit()
         return jsonify({'success': True})
@@ -599,7 +613,9 @@ def get_month_schedule():
             'student_name': schedule.student.description,
             'tutor_id': schedule.tutor_id,
             'student_id': schedule.student_id,
-            'subject_id': schedule.subject_id
+            'subject_id': schedule.subject_id,
+            'lesson_type': getattr(schedule, 'lesson_type', 'regular'),
+            'duration_minutes': getattr(schedule, 'duration_minutes', 60)
         })
     
     return jsonify(month_schedule)

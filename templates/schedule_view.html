@@ -335,8 +335,13 @@
                             {% for schedule in schedules %}
                                 {% if not schedule.get('is_past', False) %}
                                 <div class="schedule-item">
-                                    <div class="subject">{{ schedule.subject }}</div>
-                                    <div class="time">{{ schedule.time }}</div>
+                                    <div class="subject">
+                                        {% if schedule.get('lesson_type') == 'trial' %}
+                                            <span class="badge bg-warning text-dark me-2">Пробное</span>
+                                        {% endif %}
+                                        {{ schedule.subject }}
+                                    </div>
+                                    <div class="time">{{ schedule.time }} ({{ schedule.get('duration_minutes', 60) }} мин)</div>
                                     <div class="date">{{ schedule.date }}</div>
                                     <div class="person">
                                         {% if user.status == 'репетитор' %}
@@ -493,8 +498,11 @@
                 </div>
                 ${dayLessons.map(s => `
                     <div class="schedule-item mb-2">
-                        <div class="subject">${s.subject}</div>
-                        <div class="time">${s.time}</div>
+                        <div class="subject">
+                            ${s.lesson_type === 'trial' ? '<span class="badge bg-warning text-dark me-2">Пробное</span>' : ''}
+                            ${s.subject}
+                        </div>
+                        <div class="time">${s.time} (${s.duration_minutes || 60} мин)</div>
                     </div>
                 `).join('')}
             `;

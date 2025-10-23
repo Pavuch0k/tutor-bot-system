@@ -467,6 +467,14 @@
                         </div>
                         
                         <div class="mb-3">
+                            <label for="lesson_type" class="form-label">Тип занятия</label>
+                            <select class="form-select" id="lesson_type" name="lesson_type" required>
+                                <option value="regular">Обычное занятие (60 мин)</option>
+                                <option value="trial">Пробное занятие (30 мин)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
                             <label for="lesson_time" class="form-label">Время</label>
                             <input type="time" class="form-control" id="lesson_time" name="time" required>
                         </div>
@@ -735,6 +743,7 @@
                 document.getElementById('student_id').value = schedule.student_id;
                 document.getElementById('lesson_time').value = schedule.time;
                 document.getElementById('subject_id').value = schedule.subject_id;
+                document.getElementById('lesson_type').value = schedule.lesson_type || 'regular';
                 
                 // Скрыть поля повторения и сделать их необязательными
                 document.getElementById('repeat_count').value = '1';
@@ -822,11 +831,15 @@
             schedules.forEach(schedule => {
                 const lessonItem = document.createElement('div');
                 lessonItem.className = 'lesson-item';
+                const lessonTypeBadge = schedule.lesson_type === 'trial' ? 
+                '<span class="badge bg-warning text-dark me-2">Пробное</span>' : 
+                '<span class="badge bg-info me-2">Обычное</span>';
+                
                 lessonItem.innerHTML = `
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <div class="lesson-time">${schedule.time}</div>
-                            <div class="fw-bold">${schedule.subject}</div>
+                            <div class="lesson-time">${schedule.time} (${schedule.duration_minutes || 60} мин)</div>
+                            <div class="fw-bold">${lessonTypeBadge}${schedule.subject}</div>
                             <div class="lesson-info">
                                 <i class="bi bi-person me-1"></i>${schedule.tutor_name}
                                 <i class="bi bi-arrow-right mx-2"></i>
@@ -915,11 +928,15 @@
                 daySchedules.forEach(schedule => {
                     const lessonItem = document.createElement('div');
                     lessonItem.className = 'lesson-item';
-                    lessonItem.innerHTML = `
+                    const lessonTypeBadge = schedule.lesson_type === 'trial' ? 
+                '<span class="badge bg-warning text-dark me-2">Пробное</span>' : 
+                '<span class="badge bg-info me-2">Обычное</span>';
+                
+                lessonItem.innerHTML = `
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <div class="lesson-time">${schedule.time}</div>
-                                <div class="fw-bold">${schedule.subject}</div>
+                                <div class="lesson-time">${schedule.time} (${schedule.duration_minutes || 60} мин)</div>
+                                <div class="fw-bold">${lessonTypeBadge}${schedule.subject}</div>
                                 <div class="lesson-info">
                                     <i class="bi bi-person me-1"></i>${schedule.tutor_name}
                                     <i class="bi bi-arrow-right mx-2"></i>
@@ -964,6 +981,7 @@
             // Очищаем форму
             document.getElementById('subject_id').value = '';
             document.getElementById('lesson_time').value = '';
+            document.getElementById('lesson_type').value = 'regular';
             document.getElementById('repeat_count').value = '';
             document.getElementById('end_date').value = '';
             document.getElementById('end_date_info').textContent = 'Дата последнего занятия';

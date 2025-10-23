@@ -40,11 +40,34 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     networks:
       - teacher_network
     volumes:
       - ./templates:/app/templates
       - ./static:/app/static
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: my_teacher_migrate
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - teacher_network
+    volumes:
+      - ./migrate_lesson_types.sql:/app/migrate_lesson_types.sql
+      - ./migrate_timezones.sql:/app/migrate_timezones.sql
+      - ./scripts/migrate.sh:/app/scripts/migrate.sh
+    command: ["/bin/bash", "/app/scripts/migrate.sh"]
 
   bot:
     build:
@@ -64,6 +87,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     networks:
       - teacher_network
 

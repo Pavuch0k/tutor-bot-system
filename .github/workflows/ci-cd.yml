@@ -130,8 +130,9 @@ jobs:
           LOG_GROUP_ID=${{ secrets.LOG_GROUP_ID }}
           EOF
           
-          # Запускаем проект
+          # Запускаем проект с миграциями
           docker-compose down
+          docker-compose up -d --build migrate
           docker-compose up -d --build
           
           # Показываем статус
