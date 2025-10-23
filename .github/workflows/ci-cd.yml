@@ -170,8 +170,8 @@ jobs:
       run: |
         curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
           -H "Content-Type: application/json" \
-          -d '{
-            "chat_id": "${{ secrets.LOG_GROUP_ID }}",
-            "text": "🚀 <b>Новое обновление развернуто</b>\n\n📦 <b>Коммит:</b> ${{ github.sha }}\n👤 <b>Автор:</b> ${{ github.actor }}\n📝 <b>Сообщение:</b> ${{ github.event.head_commit.message }}\n⏰ <b>Время:</b> '$(date)'\n\n✅ Бот успешно обновлен и перезапущен!",
-            "parse_mode": "HTML"
-          }'
+          -d "{
+            \"chat_id\": \"${{ secrets.LOG_GROUP_ID }}\",
+            \"text\": \"🚀 <b>Новое обновление развернуто</b>\n\n📦 <b>Коммит:</b> ${{ github.sha }}\n👤 <b>Автор:</b> ${{ github.actor }}\n📝 <b>Сообщение:</b> ${{ github.event.head_commit.message }}\n⏰ <b>Время:</b> $(date '+%Y-%m-%d %H:%M:%S')\n\n✅ Бот успешно обновлен и перезапущен!\",
+            \"parse_mode\": \"HTML\"
+          }"
