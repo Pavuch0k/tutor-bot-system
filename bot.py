@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 # Конфигурация
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 WEBAPP_URL = os.getenv('WEBAPP_URL', 'http://localhost:5000/schedule')
+LOG_GROUP_ID = os.getenv('LOG_GROUP_ID')  # ID группы для отправки логов
 
 if not TOKEN:
     logger.error("TELEGRAM_BOT_TOKEN не найден в переменных окружения!")
@@ -99,6 +100,22 @@ def save_chat_id(username, chat_id):
         return True
     except Exception as e:
         logger.error(f"Ошибка при сохранении chat_id: {e}")
+        return False
+
+async def send_log_to_group(application, message):
+    """Отправить логовое сообщение в группу"""
+    if not LOG_GROUP_ID:
+        return False
+    
+    try:
+        await application.bot.send_message(
+            chat_id=LOG_GROUP_ID,
+            text=message,
+            parse_mode='HTML'
+        )
+        return True
+    except Exception as e:
+        logger.error(f"Ошибка при отправке лога в группу: {e}")
         return False
 
 def update_user_timezone(username, timezone_str):
@@ -194,6 +211,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if user_info:
         # Сохраняем chat_id в базу данных
         save_chat_id(username, chat_id)
+        
+        # Отправляем лог о входе пользователя
+        log_message = (
+            f"👤 <b>Вход пользователя</b>\n\n"
+            f"🆔 <b>Имя:</b> {user.first_name}\n"
+            f"👤 <b>Username:</b> @{username}\n"
+            f"📋 <b>Статус:</b> {user_info['status']}\n"
+            f"🏷️ <b>Описание:</b> {user_info['description']}\n"
+            f"⏰ <b>Время:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        )
+        await send_log_to_group(context.application, log_message)
         
         # Устанавливаем кнопку меню
         await set_menu_button(context.bot, chat_id, username)
@@ -354,6 +382,18 @@ async def handle_timezone_callback(update: Update, context: ContextTypes.DEFAULT
         
         # Получаем информацию о пользователе
         user_info = get_user_info(username)
+        
+        # Отправляем лог о смене часового пояса
+        if user_info:
+            log_message = (
+                f"🌍 <b>Смена часового пояса</b>\n\n"
+                f"👤 <b>Имя:</b> {query.from_user.first_name}\n"
+                f"👤 <b>Username:</b> @{username}\n"
+                f"📋 <b>Статус:</b> {user_info['status']}\n"
+                f"🌍 <b>Новый часовой пояс:</b> {timezone_name}\n"
+                f"⏰ <b>Время:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+            await send_log_to_group(context.application, log_message)
         
         if user_info:
             # Пересоздаем клавиатуру с обновленной галочкой

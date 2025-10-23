@@ -126,7 +126,8 @@ jobs:
           MYSQL_USER=root
           SECRET_KEY=${{ secrets.SECRET_KEY }}
           TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
-          WEBAPP_URL=http://46.173.24.24:5000/schedule
+          WEBAPP_URL=https://admin.tvoi-uchitel.ru/schedule
+          LOG_GROUP_ID=${{ secrets.LOG_GROUP_ID }}
           EOF
           
           # Запускаем проект
