@@ -59,6 +59,7 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       WEBAPP_URL: ${WEBAPP_URL:-http://localhost:5000/schedule}
+      LOG_GROUP_ID: ${LOG_GROUP_ID}
       TZ: Asia/Dubai
     depends_on:
       mysql:
