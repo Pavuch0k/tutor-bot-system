@@ -37,7 +37,6 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       SECRET_KEY: ${SECRET_KEY}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
     depends_on:
       mysql:
         condition: service_healthy
