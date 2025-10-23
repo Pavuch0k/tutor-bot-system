@@ -58,7 +58,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
-      WEBAPP_URL: ${WEBAPP_URL:-https://admin.tvoi-uchitel.ru/schedule}
+      WEBAPP_URL: ${WEBAPP_URL:-http://localhost:5000/schedule}
       TZ: Asia/Dubai
     depends_on:
       mysql:
