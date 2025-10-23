@@ -109,20 +109,29 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH_KEY }}
         script: |
-          cd /opt/tutor-bot-system
+          # Удаляем старую директорию если есть
+          rm -rf /root/tutor-bot-system
+          mkdir -p /root/tutor-bot-system
+          cd /root/tutor-bot-system
           
-          # Скачиваем обновленный docker-compose
-          wget -O docker-compose.yml https://raw.githubusercontent.com/${{ github.repository }}/main/docker-compose.yml
+          # Скачиваем весь проект
+          wget https://github.com/${{ github.repository }}/archive/main.tar.gz
+          tar -xzf main.tar.gz --strip-components=1
+          rm main.tar.gz
           
-          # Обновляем образы
-          docker-compose pull
+          # Создаем .env файл из переменных окружения
+          cat > .env << EOF
+          MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_DATABASE=admin_panel
+          MYSQL_USER=root
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          WEBAPP_URL=http://46.173.24.24:5000/schedule
+          EOF
           
-          # Перезапускаем сервисы
+          # Запускаем проект
           docker-compose down
-          docker-compose up -d
-          
-          # Очищаем старые образы
-          docker image prune -f
+          docker-compose up -d --build
           
           # Показываем статус
           docker-compose ps
