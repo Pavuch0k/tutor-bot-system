@@ -53,6 +53,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: my_teacher_migrate
+    restart: "no"  # Не перезапускать миграции
     environment:
       MYSQL_HOST: mysql
       MYSQL_USER: ${MYSQL_USER}
