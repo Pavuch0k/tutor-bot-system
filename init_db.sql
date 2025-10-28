@@ -20,7 +20,13 @@ CREATE TABLE IF NOT EXISTS telegram_id (
     chat_id BIGINT,
     parent_id VARCHAR(100),
     additional_description TEXT,
-    timezone VARCHAR(50) DEFAULT '+04:00' -- Часовой пояс пользователя (по умолчанию +4)
+    timezone VARCHAR(50) DEFAULT '+04:00', -- Часовой пояс пользователя (по умолчанию +4)
+    student_notify_day BOOLEAN DEFAULT TRUE,
+    student_notify_hour BOOLEAN DEFAULT TRUE,
+    student_notify_10min BOOLEAN DEFAULT TRUE,
+    parent_notify_day BOOLEAN DEFAULT TRUE,
+    parent_notify_hour BOOLEAN DEFAULT TRUE,
+    parent_notify_10min BOOLEAN DEFAULT TRUE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Создание таблицы пар репетитор-ученик

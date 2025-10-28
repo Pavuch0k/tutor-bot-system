@@ -307,6 +307,47 @@
                                     <label for="additional_description" class="form-label">Описание</label>
                                     <textarea class="form-control" id="additional_description" name="additional_description" rows="3" placeholder="Дополнительная информация"></textarea>
                                 </div>
+                                
+                                <!-- Настройки напоминаний для учеников и родителей -->
+                                <div class="mb-3 card" style="background-color: #2d2d2d; border-color: #444; display: none;" id="notify_settings">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-primary">🔔 Настройки напоминаний</h6>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label class="text-info"><i class="bi bi-person-fill"></i> Для ученика:</label>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="student_notify_day" name="student_notify_day" value="true" checked>
+                                                    <label class="form-check-label" for="student_notify_day">За день</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="student_notify_hour" name="student_notify_hour" value="true" checked>
+                                                    <label class="form-check-label" for="student_notify_hour">За час</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="student_notify_10min" name="student_notify_10min" value="true" checked>
+                                                    <label class="form-check-label" for="student_notify_10min">За 10 минут</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="text-warning"><i class="bi bi-person-badge"></i> Для родителя:</label>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="parent_notify_day" name="parent_notify_day" value="true" checked>
+                                                    <label class="form-check-label" for="parent_notify_day">За день</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="parent_notify_hour" name="parent_notify_hour" value="true" checked>
+                                                    <label class="form-check-label" for="parent_notify_hour">За час</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="parent_notify_10min" name="parent_notify_10min" value="true" checked>
+                                                    <label class="form-check-label" for="parent_notify_10min">За 10 минут</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
                                 <div class="d-flex justify-content-center">
                                     <button type="submit" class="btn btn-primary w-100" style="font-size: 1.2rem;">
                                         <i class="bi bi-plus-lg me-2"></i>Добавить
@@ -440,12 +481,15 @@
             const statusSelect = document.getElementById('status');
             const parentField = document.getElementById('parent_field');
             const parentIdInput = document.getElementById('parent_id');
+            const notifySettings = document.getElementById('notify_settings');
 
             if (statusSelect.value === 'ученик') {
                 parentField.style.display = 'block';
+                notifySettings.style.display = 'block';
             } else {
                 parentField.style.display = 'none';
                 parentIdInput.value = '';
+                notifySettings.style.display = 'none';
             }
         }
 

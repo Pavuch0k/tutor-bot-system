@@ -14,6 +14,7 @@ services:
       - mysql_data:/var/lib/mysql
       - ./init_db.sql:/docker-entrypoint-initdb.d/01_init.sql
       - ./migrate_lesson_types.sql:/docker-entrypoint-initdb.d/02_migrate_lesson_types.sql
+      - ./migrate_reminders.sql:/docker-entrypoint-initdb.d/03_migrate_reminders.sql
     ports:
       - "3306:3306"
     networks:

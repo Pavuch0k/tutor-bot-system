@@ -75,6 +75,12 @@ class TelegramID(db.Model):
     parent_id = db.Column(db.String(100))  # ID родителя для учеников
     additional_description = db.Column(db.Text)  # Дополнительное описание
     timezone = db.Column(db.String(50), default='+04:00')  # Часовой пояс пользователя
+    student_notify_day = db.Column(db.Boolean, default=True)
+    student_notify_hour = db.Column(db.Boolean, default=True)
+    student_notify_10min = db.Column(db.Boolean, default=True)
+    parent_notify_day = db.Column(db.Boolean, default=True)
+    parent_notify_hour = db.Column(db.Boolean, default=True)
+    parent_notify_10min = db.Column(db.Boolean, default=True)
 
 class Pair(db.Model):
     __tablename__ = 'pair'
@@ -240,6 +246,13 @@ def add_telegram_id():
             new_id.parent_id = parent_id
             new_id.additional_description = additional_description
             new_id.timezone = timezone
+            # Настройки напоминаний
+            new_id.student_notify_day = request.form.get('student_notify_day') == 'true'
+            new_id.student_notify_hour = request.form.get('student_notify_hour') == 'true'
+            new_id.student_notify_10min = request.form.get('student_notify_10min') == 'true'
+            new_id.parent_notify_day = request.form.get('parent_notify_day') == 'true'
+            new_id.parent_notify_hour = request.form.get('parent_notify_hour') == 'true'
+            new_id.parent_notify_10min = request.form.get('parent_notify_10min') == 'true'
             # chat_id не устанавливаем - будет NULL
             
             db.session.add(new_id)

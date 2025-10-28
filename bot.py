@@ -510,7 +510,9 @@ async def check_schedules(application):
                     s.lesson_type, s.duration_minutes,
                     sub.name as subject_name,
                     t1.telegram_id as tutor_username, t1.description as tutor_name, t1.chat_id as tutor_chat_id, t1.timezone as tutor_timezone,
-                    t2.telegram_id as student_username, t2.description as student_name, t2.chat_id as student_chat_id, t2.timezone as student_timezone
+                    t2.telegram_id as student_username, t2.description as student_name, t2.chat_id as student_chat_id, t2.timezone as student_timezone,
+                    t2.student_notify_day, t2.student_notify_hour, t2.student_notify_10min,
+                    t2.parent_notify_day, t2.parent_notify_hour, t2.parent_notify_10min, t2.parent_id
                 FROM schedule s
                 JOIN subject sub ON s.subject_id = sub.id
                 JOIN telegram_id t1 ON s.tutor_id = t1.id
