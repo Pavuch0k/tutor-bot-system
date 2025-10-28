@@ -287,38 +287,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- Информация о часовом поясе -->
-        <div style="background-color: #252526; border-radius: 8px; padding: 10px 15px; margin-bottom: 15px; border: 1px solid #333;">
-            <div style="text-align: center; color: #9c27b0; font-size: 0.9rem;">
-                <i class="bi bi-clock"></i> 
-                {% if user_timezone == 'Europe/Moscow' %}
-                    🇷🇺 Время указано в часовом поясе: Москва (UTC+3)
-                {% elif user_timezone == 'Europe/Saratov' %}
-                    🇷🇺 Время указано в часовом поясе: Саратов (UTC+4)
-                {% elif user_timezone == 'Asia/Yekaterinburg' %}
-                    🇷🇺 Время указано в часовом поясе: Екатеринбург (UTC+5)
-                {% elif user_timezone == 'Asia/Omsk' %}
-                    🇷🇺 Время указано в часовом поясе: Омск (UTC+6)
-                {% elif user_timezone == 'Asia/Krasnoyarsk' %}
-                    🇷🇺 Время указано в часовом поясе: Красноярск (UTC+7)
-                {% elif user_timezone == 'Asia/Irkutsk' %}
-                    🇷🇺 Время указано в часовом поясе: Иркутск (UTC+8)
-                {% elif user_timezone == 'Asia/Yakutsk' %}
-                    🇷🇺 Время указано в часовом поясе: Якутск (UTC+9)
-                {% elif user_timezone == 'Asia/Vladivostok' %}
-                    🇷🇺 Время указано в часовом поясе: Владивосток (UTC+10)
-                {% elif user_timezone == 'Asia/Magadan' %}
-                    🇷🇺 Время указано в часовом поясе: Магадан (UTC+11)
-                {% elif user_timezone == 'Asia/Kamchatka' %}
-                    🇷🇺 Время указано в часовом поясе: Камчатка (UTC+12)
-                {% elif user_timezone == 'Europe/Kaliningrad' %}
-                    🇷🇺 Время указано в часовом поясе: Калининград (UTC+2)
-                {% else %}
-                    🌍 Время указано в вашем часовом поясе
-                {% endif %}
-            </div>
-        </div>
-        
         <div class="accordion" id="scheduleAccordion">
             <div class="accordion-item">
                 <h2 class="accordion-header" id="headingList">
