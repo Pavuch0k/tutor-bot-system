@@ -15,6 +15,7 @@ services:
       - ./init_db.sql:/docker-entrypoint-initdb.d/01_init.sql
       - ./migrate_lesson_types.sql:/docker-entrypoint-initdb.d/02_migrate_lesson_types.sql
       - ./migrate_reminders.sql:/docker-entrypoint-initdb.d/03_migrate_reminders.sql
+      - ./migrate_reports.sql:/docker-entrypoint-initdb.d/04_migrate_reports.sql
     ports:
       - "3306:3306"
     networks:
@@ -62,6 +63,7 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
       WEBAPP_URL: ${WEBAPP_URL:-http://localhost:5000/schedule}
       LOG_GROUP_ID: ${LOG_GROUP_ID}
+      REPORTS_CHAT_ID: ${REPORTS_CHAT_ID}
       TZ: Asia/Dubai
     depends_on:
       mysql:

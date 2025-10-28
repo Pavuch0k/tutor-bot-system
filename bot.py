@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 WEBAPP_URL = os.getenv('WEBAPP_URL', 'http://localhost:5000/schedule')
 LOG_GROUP_ID = os.getenv('LOG_GROUP_ID')  # ID группы для отправки логов
+REPORTS_CHAT_ID = os.getenv('REPORTS_CHAT_ID')  # ID чата для отправки отчётов
 
 if not TOKEN:
     logger.error("TELEGRAM_BOT_TOKEN не найден в переменных окружения!")
@@ -172,7 +173,8 @@ def convert_time_to_user_timezone(system_datetime, user_timezone_str):
 def get_main_keyboard():
     """Получить главную клавиатуру с кнопками"""
     keyboard = [
-        [KeyboardButton("📅 Расписание"), KeyboardButton("⚙️ Настройки")]
+        [KeyboardButton("📅 Расписание"), KeyboardButton("⚙️ Настройки")],
+        [KeyboardButton("📊 Отчёты")]
     ]
     return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -316,6 +318,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         elif message_text == "⚙️ Настройки":
             await show_settings(update, context, user_info)
             
+        elif message_text == "📊 Отчёты":
+            await show_reports(update, context, user_info)
+            
+        elif 'report_schedule_id' in context.user_data:
+            # Обработка текста отчёта
+            await handle_report_text(update, context)
+            
         else:
             # Обработка обычного текста
             await update.message.reply_text(
@@ -433,6 +442,246 @@ async def handle_timezone_callback(update: Update, context: ContextTypes.DEFAULT
             await query.edit_message_text(f"✅ Часовой пояс обновлен на {timezone_name}")
     else:
         await query.edit_message_text("❌ Ошибка при обновлении часового пояса")
+
+async def show_reports(update: Update, context: ContextTypes.DEFAULT_TYPE, user_info: dict) -> None:
+    """Показать список неотправленных отчётов"""
+    # Только для репетиторов
+    if user_info['status'] != 'репетитор':
+        await update.message.reply_text("❌ Отчёты доступны только для репетиторов.")
+        return
+    
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor(dictionary=True)
+        
+        # Получаем список занятий без отчётов
+        cursor.execute("""
+            SELECT s.id, s.date, s.time, s.lesson_type, s.duration_minutes,
+                   sub.name as subject_name,
+                   t.description as student_name
+            FROM schedule s
+            LEFT JOIN reports r ON s.id = r.schedule_id AND r.sent = TRUE
+            JOIN subject sub ON s.subject_id = sub.id
+            JOIN telegram_id t ON s.student_id = t.id
+            WHERE s.tutor_id = %s AND s.date < CURDATE() AND r.id IS NULL
+            ORDER BY s.date DESC, s.time DESC
+            LIMIT 20
+        """, (user_info['id'],))
+        
+        reports = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        if not reports:
+            await update.message.reply_text("✅ У вас нет неотправленных отчётов.")
+            return
+        
+        # Создаем inline клавиатуру с кнопками для каждого отчёта
+        keyboard = []
+        for report in reports:
+            date_str = report['date'].strftime('%d.%m.%Y') if isinstance(report['date'], datetime) else report['date']
+            time_str = str(report['time'])[:5]
+            report_text = f"{date_str} {time_str} - {report['student_name']}"
+            keyboard.append([InlineKeyboardButton(report_text, callback_data=f"report:{report['id']}")])
+        
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(
+            text=f"📊 У вас {len(reports)} неотправленных отчётов:\n\nВыберите занятие, чтобы отправить отчёт:",
+            reply_markup=reply_markup
+        )
+        
+    except Exception as e:
+        logger.error(f"Ошибка при получении отчётов: {e}")
+        await update.message.reply_text("❌ Ошибка при получении списка отчётов.")
+
+async def handle_report_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработка нажатия на кнопку отчёта"""
+    query = update.callback_query
+    await query.answer()
+    
+    callback_data = query.data
+    if not callback_data.startswith("report:"):
+        return
+    
+    schedule_id = int(callback_data.split(":")[1])
+    
+    # Сохраняем schedule_id в контекст
+    context.user_data['report_schedule_id'] = schedule_id
+    
+    await query.edit_message_text(
+        text="📝 Введите текст отчёта о занятии.\n\n"
+             "Можно отправить:\n"
+             "• Только текст\n"
+             "• Текст + фото\n\n"
+             "Для отмены отправьте /cancel"
+    )
+
+async def handle_report_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработка текста отчёта"""
+    if 'report_schedule_id' not in context.user_data:
+        return
+    
+    schedule_id = context.user_data['report_schedule_id']
+    report_text = update.message.text
+    
+    # Сохраняем текст отчёта
+    context.user_data['report_text'] = report_text
+    context.user_data['waiting_for_photo'] = True
+    
+    # Создаем кнопки
+    keyboard = [
+        [InlineKeyboardButton("📸 Добавить фото", callback_data="add_photo::~")],
+        [InlineKeyboardButton("✅ Отправить без фото", callback_data="send_report::~")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await update.message.reply_text(
+        text=f"💬 Ваш отчёт:\n\n{report_text}\n\nВы хотите добавить фото?",
+        reply_markup=reply_markup
+    )
+
+async def handle_report_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработка фото отчёта"""
+    if not context.user_data.get('waiting_for_photo'):
+        return
+    
+    photo_file_id = update.message.photo[-1].file_id  # Берем фото максимального размера
+    context.user_data['report_photo_id'] = photo_file_id
+    
+    # Отправляем отчёт сразу
+    await send_report(update, context)
+
+async def handle_report_callback_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработка кнопок отчёта"""
+    query = update.callback_query
+    await query.answer()
+    
+    callback_data = query.data
+    
+    if callback_data == "add_photo::~":
+        await query.edit_message_text("📸 Отправьте фото для отчёта:")
+        context.user_data['waiting_for_photo'] = True
+        
+    elif callback_data == "send_report::~":
+        context.user_data['waiting_for_photo'] = False
+        await send_report(query, context)
+
+async def send_report(update, context) -> None:
+    """Отправить отчёт"""
+    if 'report_schedule_id' not in context.user_data:
+        return
+    
+    schedule_id = context.user_data['report_schedule_id']
+    report_text = context.user_data.get('report_text', '')
+    photo_file_id = context.user_data.get('report_photo_id')
+    
+    try:
+        # Сохраняем отчёт в БД
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO reports (schedule_id, report_text, photo_file_id, sent)
+            VALUES (%s, %s, %s, FALSE)
+        """, (schedule_id, report_text, photo_file_id))
+        
+        report_id = cursor.lastrowid
+        
+        # Отправляем отчёт в отдельный чат
+        if REPORTS_CHAT_ID:
+            try:
+                await context.bot.send_message(
+                    chat_id=REPORTS_CHAT_ID,
+                    text=f"📊 <b>Отчёт о занятии #{schedule_id}</b>\n\n{report_text}",
+                    parse_mode='HTML'
+                )
+                
+                if photo_file_id:
+                    await context.bot.send_photo(
+                        chat_id=REPORTS_CHAT_ID,
+                        photo=photo_file_id
+                    )
+                
+                # Помечаем как отправленное
+                cursor.execute("UPDATE reports SET sent = TRUE WHERE id = %s", (report_id,))
+                conn.commit()
+                
+            except Exception as e:
+                logger.error(f"Ошибка при отправке отчёта в чат: {e}")
+        
+        cursor.close()
+        conn.close()
+        
+        # Очищаем контекст
+        context.user_data.pop('report_schedule_id', None)
+        context.user_data.pop('report_text', None)
+        context.user_data.pop('report_photo_id', None)
+        context.user_data.pop('waiting_for_photo', None)
+        
+        message = "✅ Отчёт успешно отправлен!"
+        if hasattr(update, 'edit_message_text'):
+            await update.edit_message_text(message)
+        else:
+            await update.message.reply_text(message)
+            
+    except Exception as e:
+        logger.error(f"Ошибка при сохранении отчёта: {e}")
+        message = "❌ Ошибка при отправке отчёта."
+        if hasattr(update, 'edit_message_text'):
+            await update.edit_message_text(message)
+        else:
+            await update.message.reply_text(message)
+
+async def check_reports_reminders(application):
+    """Проверка и отправка напоминаний о необходимости отправить отчёт"""
+    logger.info("Задача check_reports_reminders запущена")
+    
+    while True:
+        try:
+            now = datetime.now()
+            
+            conn = mysql.connector.connect(**DB_CONFIG)
+            cursor = conn.cursor(dictionary=True)
+            
+            # Получаем завершившиеся занятия (через 30-60 минут после окончания)
+            cursor.execute("""
+                SELECT s.id, s.date, s.time, s.duration_minutes, s.tutor_id,
+                       sub.name as subject_name,
+                       t.description as tutor_name, t.chat_id as tutor_chat_id
+                FROM schedule s
+                JOIN subject sub ON s.subject_id = sub.id
+                JOIN telegram_id t ON s.tutor_id = t.id
+                LEFT JOIN reports r ON s.id = r.schedule_id AND r.sent = TRUE
+                WHERE s.date <= CURDATE()
+                  AND r.id IS NULL
+                  AND t.chat_id IS NOT NULL
+            """)
+            
+            schedules = cursor.fetchall()
+            
+            for schedule in schedules:
+                schedule_datetime = datetime.combine(schedule['date'], schedule['time'])
+                end_datetime = schedule_datetime + timedelta(minutes=schedule['duration_minutes'])
+                reminder_time = end_datetime + timedelta(minutes=5)  # Напоминание через 5 минут после окончания
+                
+                # Проверяем, что пора напомнить
+                if now >= reminder_time and now < reminder_time + timedelta(minutes=2):
+                    await application.bot.send_message(
+                        chat_id=schedule['tutor_chat_id'],
+                        text=f"📋 Напоминание: отправьте отчёт о занятии\n\n"
+                             f"📚 Предмет: {schedule['subject_name']}\n"
+                             f"🕐 Время: {schedule['date']} {schedule['time']}"
+                    )
+            
+            cursor.close()
+            conn.close()
+            
+            await asyncio.sleep(60)  # Проверяем каждую минуту
+            
+        except Exception as e:
+            logger.error(f"Ошибка при проверке напоминаний об отчётах: {e}")
+            await asyncio.sleep(60)
 
 async def send_reminder(bot, chat_id, schedule_data, user_status, time_before, user_timezone_str):
     """Отправить напоминание о занятии"""
@@ -657,6 +906,10 @@ async def post_init(application: Application) -> None:
     # Запускаем задачу проверки расписания
     logger.info("Запуск задачи проверки расписания...")
     asyncio.create_task(check_schedules(application))
+    
+    # Запускаем задачу проверки напоминаний об отчётах
+    logger.info("Запуск задачи проверки напоминаний об отчётах...")
+    asyncio.create_task(check_reports_reminders(application))
 
 def main():
     """Главная функция запуска бота"""
@@ -666,9 +919,14 @@ def main():
     # Добавляем обработчики команд
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(MessageHandler(filters.PHOTO, handle_report_photo))
     
     # Добавляем обработчик callback запросов (для выбора часового пояса)
     application.add_handler(CallbackQueryHandler(handle_timezone_callback, pattern="^tz:"))
+    
+    # Добавляем обработчики отчётов
+    application.add_handler(CallbackQueryHandler(handle_report_callback, pattern="^report:"))
+    application.add_handler(CallbackQueryHandler(handle_report_callback_buttons, pattern="^(add_photo|send_report)::~"))
     
     # Запускаем бота
     logger.info("Бот запускается...")
