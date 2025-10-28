@@ -553,42 +553,75 @@ async def check_schedules(application):
                 if timedelta(hours=20) <= time_diff <= timedelta(hours=28):
                     day_key = f"{reminder_key}_day"
                     if day_key not in sent_reminders:
-                        # Отправляем репетитору
+                        # Отправляем репетитору (всегда за день)
                         if schedule['tutor_chat_id']:
                             tutor_tz = schedule.get('tutor_timezone', 'Europe/Saratov')
                             await send_reminder(application.bot, schedule['tutor_chat_id'], schedule, 'репетитор', 'day', tutor_tz)
-                        # Отправляем ученику
-                        if schedule['student_chat_id']:
+                        # Отправляем ученику (если включено)
+                        if schedule['student_chat_id'] and schedule.get('student_notify_day', True):
                             student_tz = schedule.get('student_timezone', 'Europe/Saratov')
                             await send_reminder(application.bot, schedule['student_chat_id'], schedule, 'ученик', 'day', student_tz)
+                        # Отправляем родителю (если есть)
+                        if schedule.get('parent_id'):
+                            try:
+                                parent_cursor = conn.cursor(dictionary=True)
+                                parent_cursor.execute("SELECT chat_id, timezone, parent_notify_day FROM telegram_id WHERE id = %s", (schedule['parent_id'],))
+                                parent_info = parent_cursor.fetchone()
+                                parent_cursor.close()
+                                if parent_info and parent_info.get('chat_id') and parent_info.get('parent_notify_day', True):
+                                    parent_tz = parent_info.get('timezone', 'Europe/Saratov')
+                                    await send_reminder(application.bot, parent_info['chat_id'], schedule, 'родитель', 'day', parent_tz)
+                            except Exception as e:
+                                logger.error(f"Ошибка при отправке напоминания родителю: {e}")
                         sent_reminders.add(day_key)
                 
                 # Проверяем напоминание за час
                 elif timedelta(minutes=55) <= time_diff <= timedelta(minutes=65):
                     hour_key = f"{reminder_key}_hour"
                     if hour_key not in sent_reminders:
-                        # Отправляем репетитору
-                        if schedule['tutor_chat_id']:
-                            tutor_tz = schedule.get('tutor_timezone', 'Europe/Saratov')
-                            await send_reminder(application.bot, schedule['tutor_chat_id'], schedule, 'репетитор', 'hour', tutor_tz)
-                        # Отправляем ученику
-                        if schedule['student_chat_id']:
+                        # Репетитору не отправляем за час
+                        # Отправляем ученику (если включено)
+                        if schedule['student_chat_id'] and schedule.get('student_notify_hour', True):
                             student_tz = schedule.get('student_timezone', 'Europe/Saratov')
                             await send_reminder(application.bot, schedule['student_chat_id'], schedule, 'ученик', 'hour', student_tz)
+                        # Отправляем родителю (если есть)
+                        if schedule.get('parent_id'):
+                            try:
+                                parent_cursor = conn.cursor(dictionary=True)
+                                parent_cursor.execute("SELECT chat_id, timezone, parent_notify_hour FROM telegram_id WHERE id = %s", (schedule['parent_id'],))
+                                parent_info = parent_cursor.fetchone()
+                                parent_cursor.close()
+                                if parent_info and parent_info.get('chat_id') and parent_info.get('parent_notify_hour', True):
+                                    parent_tz = parent_info.get('timezone', 'Europe/Saratov')
+                                    await send_reminder(application.bot, parent_info['chat_id'], schedule, 'родитель', 'hour', parent_tz)
+                            except Exception as e:
+                                logger.error(f"Ошибка при отправке напоминания родителю: {e}")
                         sent_reminders.add(hour_key)
                 
                 # Проверяем напоминание за 10 минут
                 elif timedelta(minutes=8) <= time_diff <= timedelta(minutes=12):
                     ten_min_key = f"{reminder_key}_10min"
                     if ten_min_key not in sent_reminders:
-                        # Отправляем репетитору
+                        # Отправляем репетитору (всегда за 10 минут)
                         if schedule['tutor_chat_id']:
                             tutor_tz = schedule.get('tutor_timezone', 'Europe/Saratov')
                             await send_reminder(application.bot, schedule['tutor_chat_id'], schedule, 'репетитор', '10min', tutor_tz)
-                        # Отправляем ученику
-                        if schedule['student_chat_id']:
+                        # Отправляем ученику (если включено)
+                        if schedule['student_chat_id'] and schedule.get('student_notify_10min', True):
                             student_tz = schedule.get('student_timezone', 'Europe/Saratov')
                             await send_reminder(application.bot, schedule['student_chat_id'], schedule, 'ученик', '10min', student_tz)
+                        # Отправляем родителю (если есть)
+                        if schedule.get('parent_id'):
+                            try:
+                                parent_cursor = conn.cursor(dictionary=True)
+                                parent_cursor.execute("SELECT chat_id, timezone, parent_notify_10min FROM telegram_id WHERE id = %s", (schedule['parent_id'],))
+                                parent_info = parent_cursor.fetchone()
+                                parent_cursor.close()
+                                if parent_info and parent_info.get('chat_id') and parent_info.get('parent_notify_10min', True):
+                                    parent_tz = parent_info.get('timezone', 'Europe/Saratov')
+                                    await send_reminder(application.bot, parent_info['chat_id'], schedule, 'родитель', '10min', parent_tz)
+                            except Exception as e:
+                                logger.error(f"Ошибка при отправке напоминания родителю: {e}")
                         sent_reminders.add(ten_min_key)
             
             # Очищаем старые записи
