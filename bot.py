@@ -503,11 +503,13 @@ async def send_reminder(bot, chat_id, schedule_data, user_status, time_before, u
 
 async def check_schedules(application):
     """Проверка расписания и отправка напоминаний"""
+    logger.info("Задача check_schedules запущена")
     sent_reminders = set()
     
     while True:
         try:
             now = datetime.now()
+            logger.debug(f"Проверка расписания в {now.strftime('%Y-%m-%d %H:%M:%S')}")
             
             # Подключаемся к БД
             conn = mysql.connector.connect(**DB_CONFIG)
@@ -653,7 +655,8 @@ async def check_schedules(application):
 async def post_init(application: Application) -> None:
     """Запуск фоновых задач после инициализации бота"""
     # Запускаем задачу проверки расписания
-    application.create_task(check_schedules(application))
+    logger.info("Запуск задачи проверки расписания...")
+    asyncio.create_task(check_schedules(application))
 
 def main():
     """Главная функция запуска бота"""
