@@ -471,6 +471,13 @@
                             <input type="time" class="form-control" id="lesson_time" name="time" required>
                         </div>
                         
+                        <div class="mb-3 form-check">
+                            <input class="form-check-input" type="checkbox" id="isTrialSchedule" name="is_trial" value="true">
+                            <label class="form-check-label" for="isTrialSchedule">
+                                🎯 Пробное занятие (30 мин.)
+                            </label>
+                        </div>
+                        
                         <!-- Автопродление занятий -->
                         <div class="card mb-3" style="background-color: #2d2d2d; border-color: #444;">
                             <div class="card-body">
@@ -735,6 +742,7 @@
                 document.getElementById('student_id').value = schedule.student_id;
                 document.getElementById('lesson_time').value = schedule.time;
                 document.getElementById('subject_id').value = schedule.subject_id;
+                document.getElementById('isTrialSchedule').checked = schedule.lesson_type === 'trial';
                 
                 // Скрыть поля повторения и сделать их необязательными
                 document.getElementById('repeat_count').value = '1';
@@ -822,11 +830,13 @@
             schedules.forEach(schedule => {
                 const lessonItem = document.createElement('div');
                 lessonItem.className = 'lesson-item';
+                const isTrial = schedule.lesson_type === 'trial';
+                const duration = schedule.duration_minutes || 60;
                 lessonItem.innerHTML = `
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
-                            <div class="lesson-time">${schedule.time}</div>
-                            <div class="fw-bold">${schedule.subject}</div>
+                            <div class="lesson-time">${schedule.time} (${duration} мин.)</div>
+                            <div class="fw-bold">${schedule.subject} ${isTrial ? '<span class="badge bg-warning text-dark ms-2">Пробное</span>' : ''}</div>
                             <div class="lesson-info">
                                 <i class="bi bi-person me-1"></i>${schedule.tutor_name}
                                 <i class="bi bi-arrow-right mx-2"></i>
@@ -913,13 +923,15 @@
                 daySchedules.sort((a, b) => a.time.localeCompare(b.time));
 
                 daySchedules.forEach(schedule => {
+                    const isTrial = schedule.lesson_type === 'trial';
+                    const duration = schedule.duration_minutes || 60;
                     const lessonItem = document.createElement('div');
                     lessonItem.className = 'lesson-item';
                     lessonItem.innerHTML = `
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <div class="lesson-time">${schedule.time}</div>
-                                <div class="fw-bold">${schedule.subject}</div>
+                                <div class="lesson-time">${schedule.time} (${duration} мин.)</div>
+                                <div class="fw-bold">${schedule.subject} ${isTrial ? '<span class="badge bg-warning text-dark ms-2">Пробное</span>' : ''}</div>
                                 <div class="lesson-info">
                                     <i class="bi bi-person me-1"></i>${schedule.tutor_name}
                                     <i class="bi bi-arrow-right mx-2"></i>
