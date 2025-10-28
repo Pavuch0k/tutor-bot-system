@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS schedule (
     date DATE NOT NULL,
     time TIME NOT NULL,
     subject_id INT NOT NULL,
+    lesson_type VARCHAR(20) DEFAULT 'regular',
+    duration_minutes INT DEFAULT 60,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tutor_id) REFERENCES telegram_id(id) ON DELETE CASCADE,
     FOREIGN KEY (student_id) REFERENCES telegram_id(id) ON DELETE CASCADE,

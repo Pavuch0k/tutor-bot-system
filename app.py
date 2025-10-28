@@ -95,6 +95,8 @@ class Schedule(db.Model):
     date = db.Column(db.Date, nullable=False)
     time = db.Column(db.Time, nullable=False)
     subject_id = db.Column(db.Integer, db.ForeignKey('subject.id', ondelete='CASCADE'), nullable=False)
+    lesson_type = db.Column(db.String(20), default='regular')  # 'regular' или 'trial'
+    duration_minutes = db.Column(db.Integer, default=60)  # Продолжительность в минутах
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Отношения
@@ -356,6 +358,8 @@ def add_schedule():
     time = request.form.get('time')
     subject_id = request.form.get('subject_id')
     repeat_count = request.form.get('repeat_count')
+    lesson_type = request.form.get('lesson_type', 'regular')  # Получаем тип занятия
+    is_trial = request.form.get('is_trial') == 'true'  # Чекбокс пробного занятия
     
     if not all([tutor_id, student_id, date, time, subject_id]):
         return jsonify({'success': False, 'error': 'Пожалуйста, заполните все поля'})
@@ -370,6 +374,10 @@ def add_schedule():
         # Преобразуем строку даты в объект date
         lesson_date = datetime.strptime(date, '%Y-%m-%d').date()
         lesson_time = datetime.strptime(time, '%H:%M').time()
+        
+        # Определяем тип занятия и продолжительность
+        final_lesson_type = 'trial' if is_trial else lesson_type
+        duration = 30 if final_lesson_type == 'trial' else 60  # Пробное - 30 минут, обычное - 60
         
         # Определяем количество повторений
         weeks_to_repeat = 1
@@ -401,7 +409,9 @@ def add_schedule():
                     student_id=student_id,
                     date=current_date,
                     time=lesson_time,
-                    subject_id=subject_id
+                    subject_id=subject_id,
+                    lesson_type=final_lesson_type,
+                    duration_minutes=duration
                 )
                 db.session.add(new_schedule)
                 created_count += 1
@@ -429,6 +439,7 @@ def edit_schedule(id):
     date = request.form.get('date')
     time = request.form.get('time')
     subject_id = request.form.get('subject_id')
+    is_trial = request.form.get('is_trial') == 'true'
     
     if not all([date, time, subject_id]):
         return jsonify({'success': False, 'error': 'Пожалуйста, заполните все поля'})
@@ -448,9 +459,15 @@ def edit_schedule(id):
         if existing_schedule:
             return jsonify({'success': False, 'error': 'Занятие в это время уже существует'})
         
+        # Обновляем тип занятия и продолжительность
+        final_lesson_type = 'trial' if is_trial else 'regular'
+        duration = 30 if final_lesson_type == 'trial' else 60
+        
         schedule.date = lesson_date
         schedule.time = datetime.strptime(time, '%H:%M').time()
         schedule.subject_id = subject_id
+        schedule.lesson_type = final_lesson_type
+        schedule.duration_minutes = duration
         
         db.session.commit()
         return jsonify({'success': True})
@@ -552,7 +569,9 @@ def schedule():
             'student': schedule.student.description,
             'is_past': schedule.date < today,  # Помечаем прошедшие занятия
             'system_date': schedule.date.strftime('%d.%m.%Y'),  # Системная дата для сортировки
-            'system_time': schedule.time.strftime('%H:%M')  # Системное время для сортировки
+            'system_time': schedule.time.strftime('%H:%M'),  # Системное время для сортировки
+            'lesson_type': schedule.lesson_type if hasattr(schedule, 'lesson_type') else 'regular',  # Тип занятия
+            'duration_minutes': schedule.duration_minutes if hasattr(schedule, 'duration_minutes') else 60  # Продолжительность
         })
     
     # Сортируем расписания по системной дате и времени (для корректной сортировки)
@@ -599,7 +618,9 @@ def get_month_schedule():
             'student_name': schedule.student.description,
             'tutor_id': schedule.tutor_id,
             'student_id': schedule.student_id,
-            'subject_id': schedule.subject_id
+            'subject_id': schedule.subject_id,
+            'lesson_type': schedule.lesson_type if hasattr(schedule, 'lesson_type') else 'regular',
+            'duration_minutes': schedule.duration_minutes if hasattr(schedule, 'duration_minutes') else 60
         })
     
     return jsonify(month_schedule)

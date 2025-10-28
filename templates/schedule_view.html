@@ -317,9 +317,6 @@
                     🌍 Время указано в вашем часовом поясе
                 {% endif %}
             </div>
-            <div style="text-align: center; color: #888; font-size: 0.75rem; margin-top: 5px;">
-                Изменить часовой пояс можно в настройках бота
-            </div>
         </div>
         
         <div class="accordion" id="scheduleAccordion">
@@ -334,9 +331,9 @@
                         <div class="schedule-list">
                             {% for schedule in schedules %}
                                 {% if not schedule.get('is_past', False) %}
-                                <div class="schedule-item">
-                                    <div class="subject">{{ schedule.subject }}</div>
-                                    <div class="time">{{ schedule.time }}</div>
+                                <div class="schedule-item" {% if schedule.get('lesson_type') == 'trial' %}style="background-color: #f9ca24; border-radius: 8px;"{% endif %}>
+                                    <div class="subject">{{ schedule.subject }} {% if schedule.get('lesson_type') == 'trial' %}<span style="color: #8b7c00;">🎯 Пробное</span>{% endif %}</div>
+                                    <div class="time">{{ schedule.time }} ({{ schedule.get('duration_minutes', 60) }} мин.)</div>
                                     <div class="date">{{ schedule.date }}</div>
                                     <div class="person">
                                         {% if user.status == 'репетитор' %}
@@ -372,7 +369,9 @@
                 subject: "{{ schedule.subject }}",
                 time: "{{ schedule.time }}",
                 date: "{{ schedule.date }}",
-                is_past: {{ schedule.is_past|default(false)|tojson }}
+                is_past: {{ schedule.is_past|default(false)|tojson }},
+                lesson_type: "{{ schedule.lesson_type|default('regular') }}",
+                duration_minutes: {{ schedule.duration_minutes|default(60) }}
             },
             {% endfor %}
         ];
@@ -444,10 +443,16 @@
                     // Проверяем, все ли занятия в этот день прошедшие
                     const allPast = dayLessons.every(s => s.is_past);
                     
+                    // Проверяем наличие пробных занятий
+                    const hasTrial = dayLessons.some(s => s.lesson_type === 'trial' && !s.is_past);
+                    
                     if (allPast) {
                         el.classList.add('past-lesson');
                     } else {
                         el.classList.add('has-lesson');
+                        if (hasTrial) {
+                            el.style.backgroundColor = '#f9ca24'; // Желтый цвет для пробных
+                        }
                     }
                     el.setAttribute('data-lessons', dayLessons.length);
                     
@@ -491,12 +496,15 @@
                 <div class="day-lessons-header">
                     Занятия на ${formattedDate}
                 </div>
-                ${dayLessons.map(s => `
-                    <div class="schedule-item mb-2">
-                        <div class="subject">${s.subject}</div>
-                        <div class="time">${s.time}</div>
+                ${dayLessons.map(s => {
+                    const isTrial = s.lesson_type === 'trial';
+                    return `
+                    <div class="schedule-item mb-2" style="${isTrial ? 'background-color: #f9ca24; border-radius: 8px; padding: 10px;' : ''}">
+                        <div class="subject">${s.subject} ${isTrial ? '<span style="color: #8b7c00;">🎯 Пробное</span>' : ''}</div>
+                        <div class="time">${s.time} (${s.duration_minutes} мин.)</div>
                     </div>
-                `).join('')}
+                `;
+                }).join('')}
             `;
         }
         document.getElementById('prevMonth').onclick = function() {

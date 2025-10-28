@@ -130,8 +130,13 @@ jobs:
           LOG_GROUP_ID=${{ secrets.LOG_GROUP_ID }}
           EOF
           
-          # Запускаем проект
-          docker-compose down
+          # Останавливаем контейнеры
+          docker-compose down || true
+          
+          # Удаляем старый volume с данными MySQL для применения новых изменений в структуре БД
+          docker volume rm tutor-bot-system_mysql_data || true
+          
+          # Запускаем проект (при первом запуске применится init_db.sql с новыми полями)
           docker-compose up -d --build
           
           # Показываем статус

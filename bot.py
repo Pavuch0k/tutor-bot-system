@@ -288,6 +288,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         
         # Обработка кнопок
         if message_text == "📅 Расписание":
+            # Отправляем лог о просмотре расписания
+            log_message = (
+                f"📅 <b>Просмотр расписания</b>\n\n"
+                f"👤 <b>Имя:</b> {update.message.from_user.first_name}\n"
+                f"👤 <b>Username:</b> @{username}\n"
+                f"📋 <b>Статус:</b> {user_info['status']}\n"
+                f"🏷️ <b>Описание:</b> {user_info['description']}\n"
+                f"⏰ <b>Время:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+            await send_log_to_group(context.application, log_message)
+            
             # Создаем inline кнопку с WebApp
             keyboard = [
                 [InlineKeyboardButton(
@@ -453,9 +464,17 @@ async def send_reminder(bot, chat_id, schedule_data, user_status, time_before, u
         else:
             time_display = schedule_time_str
         
-        message = f"{emoji} Напоминание: занятие {time_text}!\n\n"
+        # Получаем тип занятия и длительность
+        lesson_type = schedule_data.get('lesson_type', 'regular')
+        duration = schedule_data.get('duration_minutes', 60)
+        is_trial = lesson_type == 'trial'
+        
+        duration_text = f"{duration} мин." if duration else "60 мин."
+        trial_text = "🎯 ПРОБНОЕ " if is_trial else ""
+        
+        message = f"{emoji} Напоминание: {trial_text}занятие {time_text}!\n\n"
         message += f"📚 Предмет: {schedule_data['subject_name']}\n"
-        message += f"🕐 Время: {time_display}\n"
+        message += f"🕐 Время: {time_display} ({duration_text})\n"
         
         if user_status == 'репетитор':
             message += f"👤 Ученик: {schedule_data['student_name']}"
@@ -488,6 +507,7 @@ async def check_schedules(application):
             cursor.execute("""
                 SELECT 
                     s.id, s.date, s.time, s.tutor_id, s.student_id,
+                    s.lesson_type, s.duration_minutes,
                     sub.name as subject_name,
                     t1.telegram_id as tutor_username, t1.description as tutor_name, t1.chat_id as tutor_chat_id, t1.timezone as tutor_timezone,
                     t2.telegram_id as student_username, t2.description as student_name, t2.chat_id as student_chat_id, t2.timezone as student_timezone

@@ -12,7 +12,8 @@ services:
       MYSQL_COLLATION: utf8mb4_unicode_ci
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./init_db.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./init_db.sql:/docker-entrypoint-initdb.d/01_init.sql
+      - ./migrate_lesson_types.sql:/docker-entrypoint-initdb.d/02_migrate_lesson_types.sql
     ports:
       - "3306:3306"
     networks:
