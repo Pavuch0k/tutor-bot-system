@@ -449,20 +449,33 @@ async def send_reminder(bot, chat_id, schedule_data, user_status, time_before, u
             time_text = "через 10 минут"
         
         # Конвертируем время в часовой пояс пользователя
-        # schedule_data['time'] - это строка типа "14:30"
-        schedule_time_str = schedule_data['time']
+        # schedule_data['time'] может быть time, timedelta или строка
         schedule_date = schedule_data.get('date')  # Дата занятия
         
         # Создаем datetime объект в системном времени
         if schedule_date:
-            hours, minutes = map(int, schedule_time_str.split(':'))
-            system_datetime = datetime.combine(schedule_date, time(hours, minutes))
+            schedule_time = schedule_data['time']
+            
+            # Обрабатываем разные типы schedule_time
+            if isinstance(schedule_time, timedelta):
+                # Конвертируем timedelta в time
+                total_seconds = int(schedule_time.total_seconds())
+                hours = (total_seconds // 3600) % 24
+                minutes = (total_seconds % 3600) // 60
+                schedule_time = time(hours, minutes)
+            elif isinstance(schedule_time, str):
+                # Если время пришло как строка HH:MM:SS
+                time_parts = schedule_time.split(':')
+                schedule_time = time(int(time_parts[0]), int(time_parts[1]), int(time_parts[2]) if len(time_parts) > 2 else 0)
+            # Если уже time объект, используем как есть
+            
+            system_datetime = datetime.combine(schedule_date, schedule_time)
             
             # Конвертируем в пользовательский часовой пояс
             user_datetime = convert_time_to_user_timezone(system_datetime, user_timezone_str)
             time_display = user_datetime.strftime('%H:%M')
         else:
-            time_display = schedule_time_str
+            time_display = str(schedule_data['time'])
         
         # Получаем тип занятия и длительность
         lesson_type = schedule_data.get('lesson_type', 'regular')
