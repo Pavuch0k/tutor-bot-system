@@ -454,16 +454,16 @@ async def show_reports(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor(dictionary=True)
         
-        # Получаем список занятий без отчётов
+        # Получаем список неотправленных отчётов из таблицы reports
         cursor.execute("""
-            SELECT s.id, s.date, s.time, s.lesson_type, s.duration_minutes,
+            SELECT r.id as report_id, s.id as schedule_id, s.date, s.time, s.lesson_type, s.duration_minutes,
                    sub.name as subject_name,
-                   t.description as student_name
-            FROM schedule s
-            LEFT JOIN reports r ON s.id = r.schedule_id AND r.sent = TRUE
+                   st.description as student_name
+            FROM reports r
+            JOIN schedule s ON r.schedule_id = s.id
             JOIN subject sub ON s.subject_id = sub.id
-            JOIN telegram_id t ON s.student_id = t.id
-            WHERE s.tutor_id = %s AND s.date < CURDATE() AND r.id IS NULL
+            JOIN telegram_id st ON s.student_id = st.id
+            WHERE s.tutor_id = %s AND r.sent = FALSE
             ORDER BY s.date DESC, s.time DESC
             LIMIT 20
         """, (user_info['id'],))
@@ -480,9 +480,9 @@ async def show_reports(update: Update, context: ContextTypes.DEFAULT_TYPE, user_
         keyboard = []
         for report in reports:
             date_str = report['date'].strftime('%d.%m.%Y') if isinstance(report['date'], datetime) else report['date']
-            time_str = str(report['time'])[:5]
+            time_str = str(report['time'])[:5] if isinstance(report['time'], time) else str(report['time'])[:5]
             report_text = f"{date_str} {time_str} - {report['student_name']}"
-            keyboard.append([InlineKeyboardButton(report_text, callback_data=f"report:{report['id']}")])
+            keyboard.append([InlineKeyboardButton(report_text, callback_data=f"report:{report['schedule_id']}")])
         
         reply_markup = InlineKeyboardMarkup(keyboard)
         
@@ -577,23 +577,67 @@ async def send_report(update, context) -> None:
     photo_file_id = context.user_data.get('report_photo_id')
     
     try:
-        # Сохраняем отчёт в БД
+        # Обновляем существующую запись отчёта в БД
         conn = mysql.connector.connect(**DB_CONFIG)
-        cursor = conn.cursor()
+        cursor = conn.cursor(dictionary=True)
         
+        # Находим ID существующей записи отчёта
+        cursor.execute("SELECT id FROM reports WHERE schedule_id = %s AND sent = FALSE", (schedule_id,))
+        report = cursor.fetchone()
+        
+        if not report:
+            message = "❌ Ошибка: запись отчёта не найдена."
+            if hasattr(update, 'edit_message_text'):
+                await update.edit_message_text(message)
+            else:
+                await update.message.reply_text(message)
+            cursor.close()
+            conn.close()
+            return
+        
+        report_id = report['id']
+        
+        # Обновляем запись отчёта
         cursor.execute("""
-            INSERT INTO reports (schedule_id, report_text, photo_file_id, sent)
-            VALUES (%s, %s, %s, FALSE)
-        """, (schedule_id, report_text, photo_file_id))
-        
-        report_id = cursor.lastrowid
+            UPDATE reports 
+            SET report_text = %s, photo_file_id = %s 
+            WHERE id = %s
+        """, (report_text, photo_file_id, report_id))
+        conn.commit()
         
         # Отправляем отчёт в отдельный чат
         if REPORTS_CHAT_ID:
             try:
+                # Получаем информацию о занятии
+                cursor.execute("""
+                    SELECT s.date, s.time, sub.name as subject_name, 
+                           st.description as student_name, t.description as tutor_name
+                    FROM schedule s
+                    JOIN subject sub ON s.subject_id = sub.id
+                    JOIN telegram_id st ON s.student_id = st.id
+                    JOIN telegram_id t ON s.tutor_id = t.id
+                    WHERE s.id = %s
+                """, (schedule_id,))
+                schedule_info = cursor.fetchone()
+                
+                if schedule_info:
+                    date_str = schedule_info['date'].strftime('%d.%m.%Y') if isinstance(schedule_info['date'], datetime) else schedule_info['date']
+                    time_str = str(schedule_info['time'])[:5] if isinstance(schedule_info['time'], time) else str(schedule_info['time'])
+                    
+                    message_text = (
+                        f"📊 <b>Отчёт о занятии</b>\n\n"
+                        f"📚 Предмет: {schedule_info['subject_name']}\n"
+                        f"👨‍🏫 Репетитор: {schedule_info['tutor_name']}\n"
+                        f"👤 Ученик: {schedule_info['student_name']}\n"
+                        f"🕐 Дата: {date_str} {time_str}\n\n"
+                        f"<b>Отчёт:</b>\n{report_text}"
+                    )
+                else:
+                    message_text = f"📊 <b>Отчёт о занятии #{schedule_id}</b>\n\n{report_text}"
+                
                 await context.bot.send_message(
                     chat_id=REPORTS_CHAT_ID,
-                    text=f"📊 <b>Отчёт о занятии #{schedule_id}</b>\n\n{report_text}",
+                    text=message_text,
                     parse_mode='HTML'
                 )
                 
@@ -644,35 +688,60 @@ async def check_reports_reminders(application):
             conn = mysql.connector.connect(**DB_CONFIG)
             cursor = conn.cursor(dictionary=True)
             
-            # Получаем завершившиеся занятия (через 30-60 минут после окончания)
+            # Получаем все завершившиеся занятия
             cursor.execute("""
                 SELECT s.id, s.date, s.time, s.duration_minutes, s.tutor_id,
                        sub.name as subject_name,
-                       t.description as tutor_name, t.chat_id as tutor_chat_id
+                       t.description as tutor_name, t.chat_id as tutor_chat_id,
+                       st.description as student_name
                 FROM schedule s
                 JOIN subject sub ON s.subject_id = sub.id
                 JOIN telegram_id t ON s.tutor_id = t.id
-                LEFT JOIN reports r ON s.id = r.schedule_id AND r.sent = TRUE
-                WHERE s.date <= CURDATE()
-                  AND r.id IS NULL
-                  AND t.chat_id IS NOT NULL
+                JOIN telegram_id st ON s.student_id = st.id
+                WHERE t.chat_id IS NOT NULL
             """)
             
             schedules = cursor.fetchall()
             
             for schedule in schedules:
+                # Вычисляем время начала занятия
                 schedule_datetime = datetime.combine(schedule['date'], schedule['time'])
+                # Вычисляем время окончания занятия
                 end_datetime = schedule_datetime + timedelta(minutes=schedule['duration_minutes'])
-                reminder_time = end_datetime + timedelta(minutes=5)  # Напоминание через 5 минут после окончания
+                # Время напоминания - через 30 или 60 минут после окончания (в зависимости от длительности)
+                reminder_delay = timedelta(minutes=schedule['duration_minutes'])  # через 30 или 60 минут
+                reminder_time = end_datetime + reminder_delay
                 
-                # Проверяем, что пора напомнить
+                # Проверяем, что занятие завершилось и пора напомнить (с окном в 2 минуты)
                 if now >= reminder_time and now < reminder_time + timedelta(minutes=2):
-                    await application.bot.send_message(
-                        chat_id=schedule['tutor_chat_id'],
-                        text=f"📋 Напоминание: отправьте отчёт о занятии\n\n"
-                             f"📚 Предмет: {schedule['subject_name']}\n"
-                             f"🕐 Время: {schedule['date']} {schedule['time']}"
-                    )
+                    # Проверяем, есть ли уже запись в reports для этого занятия
+                    cursor.execute("SELECT id FROM reports WHERE schedule_id = %s", (schedule['id'],))
+                    existing_report = cursor.fetchone()
+                    
+                    if not existing_report:
+                        # Создаем запись в reports
+                        cursor.execute("""
+                            INSERT INTO reports (schedule_id, report_text, sent)
+                            VALUES (%s, '', FALSE)
+                        """, (schedule['id'],))
+                        conn.commit()
+                        
+                        logger.info(f"Создана запись отчёта для занятия {schedule['id']}")
+                        
+                        # Отправляем напоминание репетитору
+                        date_str = schedule['date'].strftime('%d.%m.%Y') if isinstance(schedule['date'], datetime) else schedule['date']
+                        time_str = str(schedule['time'])[:5] if isinstance(schedule['time'], time) else str(schedule['time'])
+                        
+                        await application.bot.send_message(
+                            chat_id=schedule['tutor_chat_id'],
+                            text=f"📋 Напоминание: отправьте отчёт о занятии\n\n"
+                                 f"📚 Предмет: {schedule['subject_name']}\n"
+                                 f"👤 Ученик: {schedule['student_name']}\n"
+                                 f"🕐 Время: {date_str} {time_str}\n\n"
+                                 f"Нажмите /start и выберите \"📊 Отчёты\" для отправки отчёта."
+                        )
+                        
+                        logger.info(f"Отправлено напоминание об отчёте репетитору {schedule['tutor_chat_id']}")
             
             cursor.close()
             conn.close()
