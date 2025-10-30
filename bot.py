@@ -239,6 +239,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 f"• Настройка часового пояса\n\n"
                 f"💡 Используйте кнопки ниже для управления"
             )
+        elif user_info['status'] == 'родитель':
+            welcome_text = (
+                f"👋 Добро пожаловать, {user_info['description']}!\n\n"
+                f"👨‍👧 Вы авторизованы как родитель\n\n"
+                f"Доступные функции:\n"
+                f"• Просмотр расписания ребёнка\n"
+                f"• Уведомления о предстоящих занятиях (день/час/10 минут — по настройкам)\n"
+                f"• Настройка часового пояса\n\n"
+                f"💡 Используйте кнопки ниже для управления"
+            )
         else:
             welcome_text = (
                 f"👋 Добро пожаловать, {user_info['description']}!\n\n"
@@ -255,6 +265,51 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             reply_markup=get_main_keyboard()
         )
     else:
+        # Если пользователя нет в БД, проверим, указан ли он как родитель у кого-то
+        try:
+            conn = mysql.connector.connect(**DB_CONFIG)
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT id FROM telegram_id WHERE parent_id = %s LIMIT 1", (username,))
+            has_parent_link = cursor.fetchone()
+            
+            # Если есть связь как родитель и самого родителя нет в БД — создаём запись
+            cursor.execute("SELECT id FROM telegram_id WHERE telegram_id = %s", (username,))
+            existing_parent = cursor.fetchone()
+            
+            if has_parent_link and not existing_parent:
+                display_name = (user.first_name or '') + ((' ' + user.last_name) if user.last_name else '')
+                cursor2 = conn.cursor()
+                cursor2.execute(
+                    """
+                    INSERT INTO telegram_id (telegram_id, description, status, chat_id)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (username, display_name.strip() or username, 'родитель', chat_id)
+                )
+                conn.commit()
+                cursor2.close()
+                cursor.close()
+                conn.close()
+                # Повторно читаем инфо и приветствуем как родителя
+                user_info = get_user_info(username)
+                await set_menu_button(context.bot, chat_id, username)
+                welcome_text = (
+                    f"👋 Добро пожаловать, {user.first_name or username}!\n\n"
+                    f"👨‍👧 Вы авторизованы как родитель\n\n"
+                    f"Доступные функции:\n"
+                    f"• Просмотр расписания ребёнка\n"
+                    f"• Уведомления о предстоящих занятиях (день/час/10 минут — по настройкам)\n"
+                    f"• Настройка часового пояса\n\n"
+                    f"💡 Используйте кнопки ниже для управления"
+                )
+                await update.message.reply_text(text=welcome_text, reply_markup=get_main_keyboard())
+                return
+            else:
+                cursor.close()
+                conn.close()
+        except Exception as e:
+            logger.error(f"Ошибка автосоздания родителя: {e}")
+        
         await update.message.reply_text(
             "👋 Добро пожаловать в образовательную компанию «Твой Учитель»!\n\n"
             "📚 Мы помогаем ученикам достигать высоких результатов в учебе.\n\n"
@@ -704,8 +759,25 @@ async def check_reports_reminders(application):
             schedules = cursor.fetchall()
             
             for schedule in schedules:
-                # Вычисляем время начала занятия
-                schedule_datetime = datetime.combine(schedule['date'], schedule['time'])
+                # Вычисляем время начала занятия (MySQL TIME может прийти как timedelta)
+                try:
+                    schedule_time_value = schedule['time']
+                    if isinstance(schedule_time_value, timedelta):
+                        total_seconds = int(schedule_time_value.total_seconds())
+                        hours = (total_seconds // 3600) % 24
+                        minutes = (total_seconds % 3600) // 60
+                        seconds = total_seconds % 60
+                        schedule_time_obj = time(hours, minutes, seconds)
+                    elif isinstance(schedule_time_value, str):
+                        parts = schedule_time_value.split(":")
+                        schedule_time_obj = time(int(parts[0]), int(parts[1]), int(parts[2]) if len(parts) > 2 else 0)
+                    else:
+                        schedule_time_obj = schedule_time_value
+                except Exception as e:
+                    logger.error(f"Ошибка обработки времени (reports) для занятия {schedule['id']}: {e}, тип: {type(schedule['time'])}, значение: {schedule['time']}")
+                    continue
+
+                schedule_datetime = datetime.combine(schedule['date'], schedule_time_obj)
                 # Вычисляем время окончания занятия
                 end_datetime = schedule_datetime + timedelta(minutes=schedule['duration_minutes'])
                 # Время напоминания - через 30 или 60 минут после окончания (в зависимости от длительности)
@@ -898,7 +970,11 @@ async def check_schedules(application):
                         if schedule.get('parent_id'):
                             try:
                                 parent_cursor = conn.cursor(dictionary=True)
-                                parent_cursor.execute("SELECT chat_id, timezone, parent_notify_day FROM telegram_id WHERE id = %s", (schedule['parent_id'],))
+                                # parent_id может храниться как numeric id или как telegram_id (username)
+                                parent_cursor.execute(
+                                    "SELECT chat_id, timezone, parent_notify_day FROM telegram_id WHERE id = %s OR telegram_id = %s LIMIT 1",
+                                    (schedule['parent_id'], schedule['parent_id'])
+                                )
                                 parent_info = parent_cursor.fetchone()
                                 parent_cursor.close()
                                 if parent_info and parent_info.get('chat_id') and parent_info.get('parent_notify_day', True):
@@ -921,7 +997,10 @@ async def check_schedules(application):
                         if schedule.get('parent_id'):
                             try:
                                 parent_cursor = conn.cursor(dictionary=True)
-                                parent_cursor.execute("SELECT chat_id, timezone, parent_notify_hour FROM telegram_id WHERE id = %s", (schedule['parent_id'],))
+                                parent_cursor.execute(
+                                    "SELECT chat_id, timezone, parent_notify_hour FROM telegram_id WHERE id = %s OR telegram_id = %s LIMIT 1",
+                                    (schedule['parent_id'], schedule['parent_id'])
+                                )
                                 parent_info = parent_cursor.fetchone()
                                 parent_cursor.close()
                                 if parent_info and parent_info.get('chat_id') and parent_info.get('parent_notify_hour', True):
@@ -947,7 +1026,10 @@ async def check_schedules(application):
                         if schedule.get('parent_id'):
                             try:
                                 parent_cursor = conn.cursor(dictionary=True)
-                                parent_cursor.execute("SELECT chat_id, timezone, parent_notify_10min FROM telegram_id WHERE id = %s", (schedule['parent_id'],))
+                                parent_cursor.execute(
+                                    "SELECT chat_id, timezone, parent_notify_10min FROM telegram_id WHERE id = %s OR telegram_id = %s LIMIT 1",
+                                    (schedule['parent_id'], schedule['parent_id'])
+                                )
                                 parent_info = parent_cursor.fetchone()
                                 parent_cursor.close()
                                 if parent_info and parent_info.get('chat_id') and parent_info.get('parent_notify_10min', True):
