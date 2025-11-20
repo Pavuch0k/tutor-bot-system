@@ -97,9 +97,99 @@
         .log-entry.info {
             color: #2196f3;
         }
+        
+        /* Боковая панель */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 70px;
+            background-color: #252526;
+            border-right: 1px solid #333;
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 40px;
+        }
+        
+        .sidebar-icon {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            background-color: #3c3c3c;
+            text-decoration: none;
+            color: #d4d4d4;
+        }
+        
+        .sidebar-icon:hover {
+            background-color: #4c4c4c;
+            transform: scale(1.1);
+            color: white;
+        }
+        
+        .sidebar-icon.active {
+            background-color: #6a1b9a;
+            box-shadow: 0 0 15px rgba(156, 39, 176, 0.4);
+            color: white;
+        }
+        
+        .sidebar-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+        
+        .main-content {
+            margin-left: 70px;
+            margin-top: 20px;
+            padding-top: 40px;
+        }
     </style>
 </head>
 <body>
+    <!-- Вертикальная боковая панель -->
+    <div class="sidebar">
+        <a href="{{ url_for('admin_users') }}" class="sidebar-icon" title="Пользователи">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_pairs') }}" class="sidebar-icon" title="Пары">
+            <svg viewBox="0 0 24 24">
+                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_schedule') }}" class="sidebar-icon" title="Расписание">
+            <svg viewBox="0 0 24 24">
+                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_subjects') }}" class="sidebar-icon" title="Предметы">
+            <svg viewBox="0 0 24 24">
+                <path d="M21,5c-1.11-0.35-2.33-0.5-3.5-0.5c-1.95,0-4.05,0.4-5.5,1.5c-1.45-1.1-3.55-1.5-5.5-1.5S2.45,4.9,1,6v14.65c0,0.25,0.25,0.5,0.5,0.5c0.1,0,0.15-0.05,0.25-0.05C3.1,20.45,5.05,20,6.5,20c1.95,0,4.05,0.4,5.5,1.5c1.35-0.85,3.8-1.5,5.5-1.5c1.65,0,3.35,0.3,4.75,1.05c0.1,0.05,0.15,0.05,0.25,0.05c0.25,0,0.5-0.25,0.5-0.5V6C22.4,5.55,21.75,5.25,21,5z M21,18.5c-1.1-0.35-2.3-0.5-3.5-0.5c-1.7,0-4.15,0.65-5.5,1.5V8c1.35-0.85,3.8-1.5,5.5-1.5c1.2,0,2.4,0.15,3.5,0.5V18.5z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_settings') }}" class="sidebar-icon" title="Настройки">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.65-.07-.97l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.88 2.28 14.5 2 14.12 2h-4c-.38 0-.76.28-.84.66l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.22-.08-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.32-.07.65-.07.97 0 .33.03.65.07.97l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.08.38.46.66.84.66h4c.38 0 .76-.28.84-.66l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65z"/>
+            </svg>
+        </a>
+        <a href="{{ url_for('admin_tests') }}" class="sidebar-icon active" title="Тесты">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19.8 18.4L14 10.67V6.5l1.35-1.69c.26-.33.03-.81-.39-.81H9.04c-.42 0-.65.48-.39.81L10 6.5v4.17L4.2 18.4c-.54.67-.05 1.6.8 1.6h14c.85 0 1.34-.93.8-1.6z"/>
+            </svg>
+        </a>
+    </div>
+
+    <div class="main-content">
     <div class="container mt-4">
         <div class="card mb-4">
             <div class="card-header">
@@ -110,8 +200,8 @@
                     Этот тест проверяет полный цикл работы системы отчётов:
                 </p>
                 <ol>
-                    <li>Создание тестового занятия на 2 минуты вперёд</li>
-                    <li>Через 3 минуты (1 минута после завершения) - напоминание репетитору</li>
+                    <li>Создание тестового занятия на указанное время</li>
+                    <li>Через 3 минуты после завершения (1 минута после окончания) - напоминание репетитору</li>
                     <li>Репетитор отправляет отчёт</li>
                     <li>Отчёт приходит в группу админу</li>
                     <li>Админ подтверждает отчёт в группе</li>
@@ -148,6 +238,17 @@
                             </select>
                         </div>
                     </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="test_date" class="form-label">Дата занятия</label>
+                            <input type="date" class="form-control" id="test_date" name="date" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="test_time" class="form-label">Время начала (Саратов UTC+4)</label>
+                            <input type="time" class="form-control" id="test_time" name="time" required>
+                            <small class="text-muted">Время указывается в часовом поясе Саратова (UTC+4)</small>
+                        </div>
+                    </div>
                     <div class="d-flex justify-content-center">
                         <button type="submit" class="btn btn-primary btn-lg">
                             <i class="bi bi-play-fill me-2"></i>Запустить тест
@@ -167,7 +268,7 @@
                         <strong>Шаг 1:</strong> Создание тестового занятия
                     </div>
                     <div class="test-step" id="step2">
-                        <strong>Шаг 2:</strong> Ожидание завершения занятия (2 минуты)
+                        <strong>Шаг 2:</strong> Ожидание начала и завершения занятия
                     </div>
                     <div class="test-step" id="step3">
                         <strong>Шаг 3:</strong> Напоминание репетитору (через 1 минуту после завершения)
@@ -192,16 +293,29 @@
             </div>
         </div>
     </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Устанавливаем значения по умолчанию для даты и времени
+        document.addEventListener('DOMContentLoaded', function() {
+            const now = new Date();
+            const testDate = now.toISOString().split('T')[0];
+            const testTime = new Date(now.getTime() + 2 * 60000).toTimeString().slice(0, 5);
+            
+            document.getElementById('test_date').value = testDate;
+            document.getElementById('test_time').value = testTime;
+        });
+        
         document.getElementById('testForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const formData = {
                 tutor_id: document.getElementById('test_tutor_id').value,
                 student_id: document.getElementById('test_student_id').value,
-                subject_id: document.getElementById('test_subject_id').value
+                subject_id: document.getElementById('test_subject_id').value,
+                date: document.getElementById('test_date').value,
+                time: document.getElementById('test_time').value
             };
             
             // Показываем шаги и лог
@@ -256,9 +370,26 @@
                 if (data.success) {
                     addLog(data.message, 'success');
                     setStepActive(2);
-                    addLog('Ожидание завершения занятия (2 минуты)...', 'info');
                     
-                    // Через 2 минуты переходим к шагу 3
+                    // Вычисляем время до начала занятия и время ожидания
+                    const testDate = formData.date;
+                    const testTime = formData.time;
+                    const [hours, minutes] = testTime.split(':').map(Number);
+                    const [year, month, day] = testDate.split('-').map(Number);
+                    const lessonStart = new Date(year, month - 1, day, hours, minutes, 0);
+                    const now = new Date();
+                    const timeUntilStart = lessonStart - now;
+                    const lessonDuration = 2 * 60 * 1000; // 2 минуты в миллисекундах
+                    const timeUntilReminder = Math.max(0, timeUntilStart) + lessonDuration + 60 * 1000; // время до начала + длительность + 1 минута
+                    
+                    if (timeUntilStart > 0) {
+                        const minutesUntilStart = Math.floor(timeUntilStart / 60000);
+                        addLog(`Ожидание начала занятия (через ${minutesUntilStart} минут)...`, 'info');
+                    } else {
+                        addLog('Занятие должно начаться. Ожидание завершения (2 минуты)...', 'info');
+                    }
+                    
+                    // Переходим к шагу 3 через время до напоминания
                     setTimeout(() => {
                         setStepActive(3);
                         addLog('Занятие завершено. Ожидание напоминания репетитору (1 минута)...', 'info');
@@ -269,7 +400,7 @@
                             addLog('Напоминание должно прийти репетитору. Ожидание отправки отчёта...', 'info');
                             addLog('Попросите репетитора отправить отчёт через бота.', 'info');
                         }, 60000); // 1 минута
-                    }, 120000); // 2 минуты
+                    }, timeUntilReminder);
                 } else {
                     addLog('Ошибка: ' + data.error, 'error');
                 }

@@ -221,6 +221,8 @@ def run_report_test():
         tutor_id = request.json.get('tutor_id')
         student_id = request.json.get('student_id')
         subject_id = request.json.get('subject_id')
+        test_date_str = request.json.get('date')
+        test_time_str = request.json.get('time')
         
         if not all([tutor_id, student_id, subject_id]):
             return jsonify({'success': False, 'error': 'Выберите репетитора, ученика и предмет'})
@@ -233,10 +235,16 @@ def run_report_test():
         if not tutor or not student or not subject:
             return jsonify({'success': False, 'error': 'Репетитор, ученик или предмет не найдены'})
         
-        # Создаем тестовое занятие на 2 минуты вперёд
-        now = datetime.now()
-        test_date = now.date()
-        test_time = (now + timedelta(minutes=2)).time().replace(second=0, microsecond=0)
+        # Обрабатываем дату и время
+        if test_date_str and test_time_str:
+            # Используем указанные дату и время (время в часовом поясе Саратова)
+            test_date = datetime.strptime(test_date_str, '%Y-%m-%d').date()
+            test_time = datetime.strptime(test_time_str, '%H:%M').time().replace(second=0, microsecond=0)
+        else:
+            # Fallback: создаем тестовое занятие на 2 минуты вперёд
+            now = datetime.now()
+            test_date = now.date()
+            test_time = (now + timedelta(minutes=2)).time().replace(second=0, microsecond=0)
         
         # Создаем занятие с длительностью 2 минуты
         test_schedule = Schedule(
@@ -254,7 +262,7 @@ def run_report_test():
         
         return jsonify({
             'success': True,
-            'message': f'Тестовое занятие создано на {test_time.strftime("%H:%M")}. Через 3 минуты репетитору придёт напоминание об отчёте.',
+            'message': f'Тестовое занятие создано на {test_date.strftime("%d.%m.%Y")} в {test_time.strftime("%H:%M")} (Саратов UTC+4). Через 3 минуты после завершения репетитору придёт напоминание об отчёте.',
             'schedule_id': test_schedule.id
         })
         
