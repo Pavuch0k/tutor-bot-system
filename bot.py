@@ -377,8 +377,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await show_reports(update, context, user_info)
             
         elif 'report_schedule_id' in context.user_data:
-            # Обработка текста отчёта
-            await handle_report_text(update, context)
+            # Обработка текста отчёта (если есть текст и нет фото, так как фото обрабатывается отдельным обработчиком)
+            if message_text and not update.message.photo:
+                await handle_report_text(update, context)
             
         else:
             # Обработка обычного текста
@@ -563,12 +564,16 @@ async def handle_report_callback(update: Update, context: ContextTypes.DEFAULT_T
     
     # Сохраняем schedule_id в контекст
     context.user_data['report_schedule_id'] = schedule_id
+    # Сохраняем ссылку на сообщение со списком отчётов для обновления
+    context.user_data['reports_list_message_id'] = query.message.message_id
+    context.user_data['reports_list_chat_id'] = query.message.chat.id
     
     await query.edit_message_text(
-        text="📝 Введите текст отчёта о занятии.\n\n"
-             "Можно отправить:\n"
+        text="📝 Отправьте отчёт о занятии.\n\n"
+             "Вы можете отправить:\n"
              "• Только текст\n"
-             "• Текст + фото\n\n"
+             "• Текст + фото (в одном сообщении)\n"
+             "• Только фото (с подписью или без)\n\n"
              "Для отмены отправьте /cancel"
     )
 
@@ -578,49 +583,57 @@ async def handle_report_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
     
     schedule_id = context.user_data['report_schedule_id']
-    report_text = update.message.text
+    report_text = update.message.text or update.message.caption or ''
     
     # Сохраняем текст отчёта
     context.user_data['report_text'] = report_text
-    context.user_data['waiting_for_photo'] = True
     
-    # Создаем кнопки
-    keyboard = [
-        [InlineKeyboardButton("📸 Добавить фото", callback_data="add_photo::~")],
-        [InlineKeyboardButton("✅ Отправить без фото", callback_data="send_report::~")]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    await update.message.reply_text(
-        text=f"💬 Ваш отчёт:\n\n{report_text}\n\nВы хотите добавить фото?",
-        reply_markup=reply_markup
-    )
+    # Если есть фото в сообщении, сохраняем его
+    if update.message.photo:
+        photo_file_id = update.message.photo[-1].file_id
+        context.user_data['report_photo_id'] = photo_file_id
+        # Отправляем отчёт сразу с фото
+        await send_report(update, context)
+    else:
+        # Если нет фото, отправляем отчёт сразу с текстом
+        await send_report(update, context)
 
 async def handle_report_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработка фото отчёта"""
-    if not context.user_data.get('waiting_for_photo'):
+    if 'report_schedule_id' not in context.user_data:
         return
     
-    photo_file_id = update.message.photo[-1].file_id  # Берем фото максимального размера
+    photo_file_id = update.message.photo[-1].file_id
     context.user_data['report_photo_id'] = photo_file_id
     
-    # Отправляем отчёт сразу
-    await send_report(update, context)
+    # Получаем текст из подписи, если есть
+    caption = update.message.caption or ''
+    if caption:
+        context.user_data['report_text'] = caption
+        # Если есть и фото, и текст - отправляем сразу
+        await send_report(update, context)
+    elif 'report_text' in context.user_data:
+        # Если уже был текст, добавляем фото и отправляем
+        await send_report(update, context)
+    else:
+        # Если только фото без текста, просим текст
+        await update.message.reply_text(
+            "📸 Фото получено. Теперь отправьте текст отчёта или отправьте /cancel для отмены."
+        )
 
 async def handle_report_callback_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Обработка кнопок отчёта"""
+    """Обработка кнопок отчёта (устаревшие, оставлено для совместимости)"""
     query = update.callback_query
     await query.answer()
     
     callback_data = query.data
     
-    if callback_data == "add_photo::~":
-        await query.edit_message_text("📸 Отправьте фото для отчёта:")
-        context.user_data['waiting_for_photo'] = True
-        
-    elif callback_data == "send_report::~":
-        context.user_data['waiting_for_photo'] = False
-        await send_report(query, context)
+    if callback_data == "send_report::~":
+        # Если есть текст, отправляем отчёт
+        if 'report_text' in context.user_data:
+            await send_report(query, context)
+        else:
+            await query.edit_message_text("❌ Текст отчёта не найден. Пожалуйста, отправьте текст отчёта.")
 
 async def send_report(update, context) -> None:
     """Отправить отчёт"""
@@ -661,75 +674,156 @@ async def send_report(update, context) -> None:
         conn.commit()
         
         # Отправляем отчёт в отдельный чат
-        if REPORTS_CHAT_ID:
-            try:
-                # Получаем информацию о занятии
-                cursor.execute("""
-                    SELECT s.date, s.time, sub.name as subject_name, 
-                           st.description as student_name, t.description as tutor_name
-                    FROM schedule s
-                    JOIN subject sub ON s.subject_id = sub.id
-                    JOIN telegram_id st ON s.student_id = st.id
-                    JOIN telegram_id t ON s.tutor_id = t.id
-                    WHERE s.id = %s
-                """, (schedule_id,))
-                schedule_info = cursor.fetchone()
+        if not REPORTS_CHAT_ID:
+            logger.error("REPORTS_CHAT_ID не установлен в переменных окружения")
+            message = "❌ Ошибка: не настроен чат для отчётов."
+            if hasattr(update, 'edit_message_text'):
+                await update.edit_message_text(message)
+            else:
+                await update.message.reply_text(message)
+            cursor.close()
+            conn.close()
+            return
+        
+        logger.info(f"Отправка отчёта {report_id} в чат {REPORTS_CHAT_ID}")
+        
+        try:
+            # Получаем информацию о занятии
+            cursor.execute("""
+                SELECT s.date, s.time, sub.name as subject_name, 
+                       st.description as student_name, t.description as tutor_name
+                FROM schedule s
+                JOIN subject sub ON s.subject_id = sub.id
+                JOIN telegram_id st ON s.student_id = st.id
+                JOIN telegram_id t ON s.tutor_id = t.id
+                WHERE s.id = %s
+            """, (schedule_id,))
+            schedule_info = cursor.fetchone()
+            
+            if schedule_info:
+                date_str = schedule_info['date'].strftime('%d.%m.%Y') if isinstance(schedule_info['date'], datetime) else schedule_info['date']
+                time_str = str(schedule_info['time'])[:5] if isinstance(schedule_info['time'], time) else str(schedule_info['time'])
                 
-                if schedule_info:
-                    date_str = schedule_info['date'].strftime('%d.%m.%Y') if isinstance(schedule_info['date'], datetime) else schedule_info['date']
-                    time_str = str(schedule_info['time'])[:5] if isinstance(schedule_info['time'], time) else str(schedule_info['time'])
-                    
-                    message_text = (
-                        f"📊 <b>Отчёт о занятии</b>\n\n"
-                        f"📚 Предмет: {schedule_info['subject_name']}\n"
-                        f"👨‍🏫 Репетитор: {schedule_info['tutor_name']}\n"
-                        f"👤 Ученик: {schedule_info['student_name']}\n"
-                        f"🕐 Дата: {date_str} {time_str}\n\n"
-                        f"<b>Отчёт:</b>\n{report_text}"
-                    )
-                else:
-                    message_text = f"📊 <b>Отчёт о занятии #{schedule_id}</b>\n\n{report_text}"
-                
-                # Создаем кнопку подтверждения
-                keyboard = [
-                    [InlineKeyboardButton("✅ Подтвердить", callback_data=f"approve_report:{report_id}")]
-                ]
-                reply_markup = InlineKeyboardMarkup(keyboard)
-                
+                message_text = (
+                    f"📊 <b>Отчёт о занятии</b>\n\n"
+                    f"📚 Предмет: {schedule_info['subject_name']}\n"
+                    f"👨‍🏫 Репетитор: {schedule_info['tutor_name']}\n"
+                    f"👤 Ученик: {schedule_info['student_name']}\n"
+                    f"🕐 Дата: {date_str} {time_str}\n\n"
+                    f"<b>Отчёт:</b>\n{report_text if report_text else '(без текста)'}"
+                )
+            else:
+                message_text = f"📊 <b>Отчёт о занятии #{schedule_id}</b>\n\n{report_text if report_text else '(без текста)'}"
+            
+            # Создаем кнопку подтверждения
+            keyboard = [
+                [InlineKeyboardButton("✅ Подтвердить", callback_data=f"approve_report:{report_id}")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            # Отправляем сообщение с фото, если есть, иначе только текст
+            if photo_file_id:
+                sent_message = await context.bot.send_photo(
+                    chat_id=REPORTS_CHAT_ID,
+                    photo=photo_file_id,
+                    caption=message_text,
+                    parse_mode='HTML',
+                    reply_markup=reply_markup
+                )
+            else:
                 sent_message = await context.bot.send_message(
                     chat_id=REPORTS_CHAT_ID,
                     text=message_text,
                     parse_mode='HTML',
                     reply_markup=reply_markup
                 )
-                
-                if photo_file_id:
-                    await context.bot.send_photo(
-                        chat_id=REPORTS_CHAT_ID,
-                        photo=photo_file_id
-                    )
-                
-                # НЕ помечаем как отправленное сразу - только после подтверждения
-                # cursor.execute("UPDATE reports SET sent = TRUE WHERE id = %s", (report_id,))
-                # conn.commit()
-                
-            except Exception as e:
-                logger.error(f"Ошибка при отправке отчёта в чат: {e}")
+            
+            logger.info(f"Отчёт {report_id} успешно отправлен в группу {REPORTS_CHAT_ID}")
+            
+        except Exception as e:
+            logger.error(f"Ошибка при отправке отчёта в чат {REPORTS_CHAT_ID}: {e}", exc_info=True)
+            message = f"❌ Ошибка при отправке отчёта в группу: {str(e)}"
+            if hasattr(update, 'edit_message_text'):
+                await update.edit_message_text(message)
+            else:
+                await update.message.reply_text(message)
+            cursor.close()
+            conn.close()
+            return
         
         cursor.close()
         conn.close()
         
         # Очищаем контекст
-        context.user_data.pop('report_schedule_id', None)
+        schedule_id_to_remove = context.user_data.pop('report_schedule_id', None)
         context.user_data.pop('report_text', None)
         context.user_data.pop('report_photo_id', None)
         context.user_data.pop('waiting_for_photo', None)
         
-        message = "✅ Отчёт успешно отправлен!"
+        message = "✅ Отчёт успешно отправлен на подтверждение администратору!"
         if hasattr(update, 'edit_message_text'):
             await update.edit_message_text(message)
         else:
             await update.message.reply_text(message)
+        
+        # Обновляем список отчётов, если есть ссылка на сообщение со списком
+        if 'reports_list_message_id' in context.user_data and 'reports_list_chat_id' in context.user_data:
+            try:
+                user_info = get_user_info(update.effective_user.username)
+                if user_info and user_info['status'] == 'репетитор':
+                    # Получаем обновленный список отчётов
+                    conn2 = mysql.connector.connect(**DB_CONFIG)
+                    cursor2 = conn2.cursor(dictionary=True)
+                    cursor2.execute("""
+                        SELECT r.id as report_id, s.id as schedule_id, s.date, s.time, s.lesson_type, s.duration_minutes,
+                               sub.name as subject_name,
+                               st.description as student_name
+                        FROM reports r
+                        JOIN schedule s ON r.schedule_id = s.id
+                        JOIN subject sub ON s.subject_id = sub.id
+                        JOIN telegram_id st ON s.student_id = st.id
+                        WHERE s.tutor_id = %s AND r.sent = FALSE
+                        ORDER BY s.date DESC, s.time DESC
+                        LIMIT 20
+                    """, (user_info['id'],))
+                    
+                    reports = cursor2.fetchall()
+                    cursor2.close()
+                    conn2.close()
+                    
+                    list_message_id = context.user_data.pop('reports_list_message_id', None)
+                    list_chat_id = context.user_data.pop('reports_list_chat_id', None)
+                    
+                    if reports:
+                        keyboard = []
+                        for report in reports:
+                            date_str = report['date'].strftime('%d.%m.%Y') if isinstance(report['date'], datetime) else report['date']
+                            time_str = str(report['time'])[:5] if isinstance(report['time'], time) else str(report['time'])[:5]
+                            report_text = f"{date_str} {time_str} - {report['student_name']}"
+                            keyboard.append([InlineKeyboardButton(report_text, callback_data=f"report:{report['schedule_id']}")])
+                        
+                        reply_markup = InlineKeyboardMarkup(keyboard)
+                        try:
+                            await context.bot.edit_message_text(
+                                chat_id=list_chat_id,
+                                message_id=list_message_id,
+                                text=f"📊 У вас {len(reports)} неотправленных отчётов:\n\nВыберите занятие, чтобы отправить отчёт:",
+                                reply_markup=reply_markup
+                            )
+                        except Exception as e:
+                            logger.error(f"Ошибка при обновлении сообщения со списком отчётов: {e}")
+                    else:
+                        # Если отчётов не осталось, обновляем сообщение
+                        try:
+                            await context.bot.edit_message_text(
+                                chat_id=list_chat_id,
+                                message_id=list_message_id,
+                                text="✅ У вас нет неотправленных отчётов."
+                            )
+                        except Exception as e:
+                            logger.error(f"Ошибка при обновлении сообщения: {e}")
+            except Exception as e:
+                logger.error(f"Ошибка при обновлении списка отчётов: {e}")
             
     except Exception as e:
         logger.error(f"Ошибка при сохранении отчёта: {e}")
@@ -1175,8 +1269,9 @@ def main():
     
     # Добавляем обработчики команд
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    # Обработчик фото должен быть перед обработчиком текста, чтобы обрабатывать фото с подписью
     application.add_handler(MessageHandler(filters.PHOTO, handle_report_photo))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
     # Добавляем обработчик callback запросов (для выбора часового пояса)
     application.add_handler(CallbackQueryHandler(handle_timezone_callback, pattern="^tz:"))
