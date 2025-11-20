@@ -882,7 +882,8 @@ async def handle_approve_report(update: Update, context: ContextTypes.DEFAULT_TY
         )
         
         # Отправляем отчёт родителю, если он есть
-        if report_info['parent_id']:
+        logger.info(f"Проверка отправки отчёта родителю. parent_id: {report_info.get('parent_id')}")
+        if report_info.get('parent_id'):
             try:
                 # Ищем родителя по parent_id
                 parent_cursor = conn.cursor(dictionary=True)
@@ -893,9 +894,28 @@ async def handle_approve_report(update: Update, context: ContextTypes.DEFAULT_TY
                 parent_info = parent_cursor.fetchone()
                 parent_cursor.close()
                 
+                logger.info(f"Найден родитель: {parent_info}, chat_id: {parent_info.get('chat_id') if parent_info else None}")
+                
                 if parent_info and parent_info.get('chat_id'):
-                    date_str = report_info['date'].strftime('%d.%m.%Y') if isinstance(report_info['date'], datetime) else report_info['date']
-                    time_str = str(report_info['time'])[:5] if isinstance(report_info['time'], time) else str(report_info['time'])
+                    # Форматируем дату и время
+                    if isinstance(report_info['date'], datetime):
+                        date_str = report_info['date'].strftime('%d.%m.%Y')
+                    elif isinstance(report_info['date'], str):
+                        try:
+                            date_obj = datetime.strptime(report_info['date'], '%Y-%m-%d')
+                            date_str = date_obj.strftime('%d.%m.%Y')
+                        except:
+                            date_str = str(report_info['date'])
+                    else:
+                        date_str = str(report_info['date'])
+                    
+                    if isinstance(report_info['time'], time):
+                        time_str = report_info['time'].strftime('%H:%M')
+                    elif isinstance(report_info['time'], str):
+                        # Если время в формате "HH:MM:SS" или "HH:MM"
+                        time_str = report_info['time'][:5]
+                    else:
+                        time_str = str(report_info['time'])[:5] if len(str(report_info['time'])) >= 5 else str(report_info['time'])
                     
                     parent_message = (
                         f"📊 <b>Отчёт о занятии вашего ребёнка</b>\n\n"
