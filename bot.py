@@ -825,6 +825,8 @@ async def handle_approve_report(update: Update, context: ContextTypes.DEFAULT_TY
                         )
                     
                     logger.info(f"Отчёт отправлен родителю {parent_info['chat_id']}")
+            except Exception as e:
+                logger.error(f"Ошибка при отправке отчёта родителю: {e}")
         
         cursor.close()
         conn.close()
