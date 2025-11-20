@@ -205,6 +205,64 @@ def admin_subjects():
     subjects = Subject.query.all()
     return render_template('subjects.html', subjects=subjects)
 
+@app.route('/admin/tests')
+@login_required
+def admin_tests():
+    tutors = TelegramID.query.filter_by(status='репетитор').all()
+    students = TelegramID.query.filter_by(status='ученик').all()
+    subjects = Subject.query.all()
+    return render_template('tests.html', tutors=tutors, students=students, subjects=subjects)
+
+@app.route('/api/run_report_test', methods=['POST'])
+@login_required
+def run_report_test():
+    """Запуск теста системы отчётов"""
+    try:
+        tutor_id = request.json.get('tutor_id')
+        student_id = request.json.get('student_id')
+        subject_id = request.json.get('subject_id')
+        
+        if not all([tutor_id, student_id, subject_id]):
+            return jsonify({'success': False, 'error': 'Выберите репетитора, ученика и предмет'})
+        
+        # Проверяем, что пользователи существуют
+        tutor = TelegramID.query.get(tutor_id)
+        student = TelegramID.query.get(student_id)
+        subject = Subject.query.get(subject_id)
+        
+        if not tutor or not student or not subject:
+            return jsonify({'success': False, 'error': 'Репетитор, ученик или предмет не найдены'})
+        
+        # Создаем тестовое занятие на 2 минуты вперёд
+        now = datetime.now()
+        test_date = now.date()
+        test_time = (now + timedelta(minutes=2)).time().replace(second=0, microsecond=0)
+        
+        # Создаем занятие с длительностью 2 минуты
+        test_schedule = Schedule(
+            tutor_id=tutor_id,
+            student_id=student_id,
+            date=test_date,
+            time=test_time,
+            subject_id=subject_id,
+            lesson_type='regular',
+            duration_minutes=2
+        )
+        
+        db.session.add(test_schedule)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Тестовое занятие создано на {test_time.strftime("%H:%M")}. Через 3 минуты репетитору придёт напоминание об отчёте.',
+            'schedule_id': test_schedule.id
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Ошибка при создании тестового занятия: {e}')
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/add_telegram_id', methods=['POST'])
 @login_required
 def add_telegram_id():

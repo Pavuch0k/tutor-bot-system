@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Тесты - Админ-панель</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .gradient-purple {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            background-color: #1e1e1e;
+        }
+        .card {
+            background-color: #252526;
+            border-color: #333;
+        }
+        .card-header {
+            background-color: #333;
+            border-color: #333;
+            color: #d4d4d4;
+        }
+        .form-control, .form-select {
+            background-color: #3c3c3c;
+            border-color: #333;
+            color: #d4d4d4;
+        }
+        .form-control:focus, .form-select:focus {
+            background-color: #3c3c3c;
+            border-color: #9c27b0;
+            color: #d4d4d4;
+        }
+        .btn-primary {
+            background: linear-gradient(-45deg, #6a1b9a, #9c27b0, #7b1fa2, #8e24aa);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(-45deg, #7b1fa2, #8e24aa, #6a1b9a, #9c27b0);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            border: none;
+        }
+        .test-step {
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #2d2d2d;
+            border-left: 4px solid #9c27b0;
+            border-radius: 4px;
+        }
+        .test-step.completed {
+            border-left-color: #4caf50;
+        }
+        .test-step.active {
+            border-left-color: #ff9800;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .test-log {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+        }
+        .log-entry.success {
+            color: #4caf50;
+        }
+        .log-entry.error {
+            color: #f44336;
+        }
+        .log-entry.info {
+            color: #2196f3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4><i class="bi bi-flask me-2"></i>Тестирование системы отчётов</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Этот тест проверяет полный цикл работы системы отчётов:
+                </p>
+                <ol>
+                    <li>Создание тестового занятия на 2 минуты вперёд</li>
+                    <li>Через 3 минуты (1 минута после завершения) - напоминание репетитору</li>
+                    <li>Репетитор отправляет отчёт</li>
+                    <li>Отчёт приходит в группу админу</li>
+                    <li>Админ подтверждает отчёт в группе</li>
+                    <li>Отчёт отправляется родителю (если есть)</li>
+                </ol>
+                
+                <form id="testForm" class="mt-4">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="test_tutor_id" class="form-label">Репетитор</label>
+                            <select class="form-select" id="test_tutor_id" name="tutor_id" required>
+                                <option value="">Выберите репетитора</option>
+                                {% for tutor in tutors %}
+                                <option value="{{ tutor.id }}">{{ tutor.description }} (@{{ tutor.telegram_id }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="test_student_id" class="form-label">Ученик</label>
+                            <select class="form-select" id="test_student_id" name="student_id" required>
+                                <option value="">Выберите ученика</option>
+                                {% for student in students %}
+                                <option value="{{ student.id }}">{{ student.description }} (@{{ student.telegram_id }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="test_subject_id" class="form-label">Предмет</label>
+                            <select class="form-select" id="test_subject_id" name="subject_id" required>
+                                <option value="">Выберите предмет</option>
+                                {% for subject in subjects %}
+                                <option value="{{ subject.id }}">{{ subject.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-center">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-play-fill me-2"></i>Запустить тест
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="bi bi-list-check me-2"></i>Ход теста</h4>
+            </div>
+            <div class="card-body">
+                <div id="testSteps" style="display: none;">
+                    <div class="test-step" id="step1">
+                        <strong>Шаг 1:</strong> Создание тестового занятия
+                    </div>
+                    <div class="test-step" id="step2">
+                        <strong>Шаг 2:</strong> Ожидание завершения занятия (2 минуты)
+                    </div>
+                    <div class="test-step" id="step3">
+                        <strong>Шаг 3:</strong> Напоминание репетитору (через 1 минуту после завершения)
+                    </div>
+                    <div class="test-step" id="step4">
+                        <strong>Шаг 4:</strong> Репетитор отправляет отчёт
+                    </div>
+                    <div class="test-step" id="step5">
+                        <strong>Шаг 5:</strong> Отчёт приходит в группу админу
+                    </div>
+                    <div class="test-step" id="step6">
+                        <strong>Шаг 6:</strong> Админ подтверждает отчёт в группе
+                    </div>
+                    <div class="test-step" id="step7">
+                        <strong>Шаг 7:</strong> Отчёт отправляется родителю (если есть)
+                    </div>
+                </div>
+                
+                <div class="test-log mt-4" id="testLog" style="display: none;">
+                    <div class="log-entry info">Лог теста:</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                tutor_id: document.getElementById('test_tutor_id').value,
+                student_id: document.getElementById('test_student_id').value,
+                subject_id: document.getElementById('test_subject_id').value
+            };
+            
+            // Показываем шаги и лог
+            document.getElementById('testSteps').style.display = 'block';
+            document.getElementById('testLog').style.display = 'block';
+            
+            // Сбрасываем шаги
+            for (let i = 1; i <= 7; i++) {
+                const step = document.getElementById('step' + i);
+                step.classList.remove('completed', 'active');
+            }
+            
+            // Очищаем лог
+            document.getElementById('testLog').innerHTML = '<div class="log-entry info">Лог теста:</div>';
+            
+            function addLog(message, type = 'info') {
+                const log = document.getElementById('testLog');
+                const entry = document.createElement('div');
+                entry.className = `log-entry ${type}`;
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                log.appendChild(entry);
+                log.scrollTop = log.scrollHeight;
+            }
+            
+            function setStepActive(stepNum) {
+                for (let i = 1; i <= 7; i++) {
+                    const step = document.getElementById('step' + i);
+                    step.classList.remove('active');
+                    if (i < stepNum) {
+                        step.classList.add('completed');
+                    }
+                }
+                if (stepNum <= 7) {
+                    document.getElementById('step' + stepNum).classList.add('active');
+                }
+            }
+            
+            try {
+                setStepActive(1);
+                addLog('Запуск теста...', 'info');
+                
+                const response = await fetch('/api/run_report_test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog(data.message, 'success');
+                    setStepActive(2);
+                    addLog('Ожидание завершения занятия (2 минуты)...', 'info');
+                    
+                    // Через 2 минуты переходим к шагу 3
+                    setTimeout(() => {
+                        setStepActive(3);
+                        addLog('Занятие завершено. Ожидание напоминания репетитору (1 минута)...', 'info');
+                        
+                        // Через 1 минуту переходим к шагу 4
+                        setTimeout(() => {
+                            setStepActive(4);
+                            addLog('Напоминание должно прийти репетитору. Ожидание отправки отчёта...', 'info');
+                            addLog('Попросите репетитора отправить отчёт через бота.', 'info');
+                        }, 60000); // 1 минута
+                    }, 120000); // 2 минуты
+                } else {
+                    addLog('Ошибка: ' + data.error, 'error');
+                }
+            } catch (error) {
+                addLog('Ошибка при запуске теста: ' + error.message, 'error');
+            }
+        });
+    </script>
+</body>
+</html>
+

@@ -690,10 +690,17 @@ async def send_report(update, context) -> None:
                 else:
                     message_text = f"📊 <b>Отчёт о занятии #{schedule_id}</b>\n\n{report_text}"
                 
-                await context.bot.send_message(
+                # Создаем кнопку подтверждения
+                keyboard = [
+                    [InlineKeyboardButton("✅ Подтвердить", callback_data=f"approve_report:{report_id}")]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                
+                sent_message = await context.bot.send_message(
                     chat_id=REPORTS_CHAT_ID,
                     text=message_text,
-                    parse_mode='HTML'
+                    parse_mode='HTML',
+                    reply_markup=reply_markup
                 )
                 
                 if photo_file_id:
@@ -702,9 +709,9 @@ async def send_report(update, context) -> None:
                         photo=photo_file_id
                     )
                 
-                # Помечаем как отправленное
-                cursor.execute("UPDATE reports SET sent = TRUE WHERE id = %s", (report_id,))
-                conn.commit()
+                # НЕ помечаем как отправленное сразу - только после подтверждения
+                # cursor.execute("UPDATE reports SET sent = TRUE WHERE id = %s", (report_id,))
+                # conn.commit()
                 
             except Exception as e:
                 logger.error(f"Ошибка при отправке отчёта в чат: {e}")
@@ -731,6 +738,100 @@ async def send_report(update, context) -> None:
             await update.edit_message_text(message)
         else:
             await update.message.reply_text(message)
+
+async def handle_approve_report(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработка подтверждения отчёта администратором"""
+    query = update.callback_query
+    await query.answer()
+    
+    callback_data = query.data
+    if not callback_data.startswith("approve_report:"):
+        return
+    
+    report_id = int(callback_data.split(":")[1])
+    
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor(dictionary=True)
+        
+        # Получаем информацию об отчёте
+        cursor.execute("""
+            SELECT r.id, r.schedule_id, r.report_text, r.photo_file_id,
+                   s.date, s.time, s.student_id,
+                   sub.name as subject_name,
+                   st.description as student_name, st.parent_id,
+                   t.description as tutor_name
+            FROM reports r
+            JOIN schedule s ON r.schedule_id = s.id
+            JOIN subject sub ON s.subject_id = sub.id
+            JOIN telegram_id st ON s.student_id = st.id
+            JOIN telegram_id t ON s.tutor_id = t.id
+            WHERE r.id = %s
+        """, (report_id,))
+        
+        report_info = cursor.fetchone()
+        
+        if not report_info:
+            await query.edit_message_text("❌ Отчёт не найден")
+            cursor.close()
+            conn.close()
+            return
+        
+        # Помечаем отчёт как подтверждённый и отправленный
+        cursor.execute("UPDATE reports SET sent = TRUE WHERE id = %s", (report_id,))
+        conn.commit()
+        
+        # Отправляем подтверждение
+        await query.edit_message_text(
+            query.message.text + "\n\n✅ <b>Подтверждено администратором</b>",
+            parse_mode='HTML'
+        )
+        
+        # Отправляем отчёт родителю, если он есть
+        if report_info['parent_id']:
+            try:
+                # Ищем родителя по parent_id
+                parent_cursor = conn.cursor(dictionary=True)
+                parent_cursor.execute(
+                    "SELECT chat_id, timezone FROM telegram_id WHERE id = %s OR telegram_id = %s LIMIT 1",
+                    (report_info['parent_id'], report_info['parent_id'])
+                )
+                parent_info = parent_cursor.fetchone()
+                parent_cursor.close()
+                
+                if parent_info and parent_info.get('chat_id'):
+                    date_str = report_info['date'].strftime('%d.%m.%Y') if isinstance(report_info['date'], datetime) else report_info['date']
+                    time_str = str(report_info['time'])[:5] if isinstance(report_info['time'], time) else str(report_info['time'])
+                    
+                    parent_message = (
+                        f"📊 <b>Отчёт о занятии вашего ребёнка</b>\n\n"
+                        f"📚 Предмет: {report_info['subject_name']}\n"
+                        f"👨‍🏫 Репетитор: {report_info['tutor_name']}\n"
+                        f"👤 Ученик: {report_info['student_name']}\n"
+                        f"🕐 Дата: {date_str} {time_str}\n\n"
+                        f"<b>Отчёт:</b>\n{report_info['report_text']}"
+                    )
+                    
+                    await context.bot.send_message(
+                        chat_id=parent_info['chat_id'],
+                        text=parent_message,
+                        parse_mode='HTML'
+                    )
+                    
+                    if report_info['photo_file_id']:
+                        await context.bot.send_photo(
+                            chat_id=parent_info['chat_id'],
+                            photo=report_info['photo_file_id']
+                        )
+                    
+                    logger.info(f"Отчёт отправлен родителю {parent_info['chat_id']}")
+        
+        cursor.close()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Ошибка при подтверждении отчёта: {e}")
+        await query.edit_message_text("❌ Ошибка при подтверждении отчёта")
 
 async def check_reports_reminders(application):
     """Проверка и отправка напоминаний о необходимости отправить отчёт"""
@@ -780,8 +881,11 @@ async def check_reports_reminders(application):
                 schedule_datetime = datetime.combine(schedule['date'], schedule_time_obj)
                 # Вычисляем время окончания занятия
                 end_datetime = schedule_datetime + timedelta(minutes=schedule['duration_minutes'])
-                # Время напоминания - через 30 или 60 минут после окончания (в зависимости от длительности)
-                reminder_delay = timedelta(minutes=schedule['duration_minutes'])  # через 30 или 60 минут
+                # Время напоминания - через 5 минут после окончания (или 1 минута для тестовых занятий длительностью 2 минуты)
+                if schedule['duration_minutes'] == 2:
+                    reminder_delay = timedelta(minutes=1)  # Для тестовых занятий - 1 минута
+                else:
+                    reminder_delay = timedelta(minutes=5)  # Для обычных занятий - 5 минут
                 reminder_time = end_datetime + reminder_delay
                 
                 # Проверяем, что занятие завершилось и пора напомнить (с окном в 2 минуты)
@@ -1078,6 +1182,7 @@ def main():
     # Добавляем обработчики отчётов
     application.add_handler(CallbackQueryHandler(handle_report_callback, pattern="^report:"))
     application.add_handler(CallbackQueryHandler(handle_report_callback_buttons, pattern="^(add_photo|send_report)::~"))
+    application.add_handler(CallbackQueryHandler(handle_approve_report, pattern="^approve_report:"))
     
     # Запускаем бота
     logger.info("Бот запускается...")
