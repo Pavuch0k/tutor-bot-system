@@ -376,6 +376,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         elif message_text == "📊 Отчёты":
             await show_reports(update, context, user_info)
             
+        elif 'editing_report_id' in context.user_data:
+            # Обработка редактирования отчёта администратором
+            if message_text and not update.message.photo:
+                await handle_edited_report_text(update, context)
+        
         elif 'report_schedule_id' in context.user_data:
             # Обработка текста отчёта (если есть текст и нет фото, так как фото обрабатывается отдельным обработчиком)
             if message_text and not update.message.photo:
@@ -600,6 +605,11 @@ async def handle_report_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 async def handle_report_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Обработка фото отчёта"""
+    # Проверяем, редактируется ли отчёт
+    if 'editing_report_id' in context.user_data:
+        await handle_edited_report_photo(update, context)
+        return
+    
     if 'report_schedule_id' not in context.user_data:
         return
     
@@ -715,9 +725,13 @@ async def send_report(update, context) -> None:
             else:
                 message_text = f"📊 <b>Отчёт о занятии #{schedule_id}</b>\n\n{report_text if report_text else '(без текста)'}"
             
-            # Создаем кнопку подтверждения
+            # Создаем кнопки: Подтвердить, Редактировать, Отмена
             keyboard = [
-                [InlineKeyboardButton("✅ Подтвердить", callback_data=f"approve_report:{report_id}")]
+                [
+                    InlineKeyboardButton("✅ Подтвердить", callback_data=f"approve_report:{report_id}"),
+                    InlineKeyboardButton("✏️ Редактировать", callback_data=f"edit_report:{report_id}")
+                ],
+                [InlineKeyboardButton("❌ Отмена", callback_data=f"cancel_report:{report_id}")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
@@ -948,6 +962,353 @@ async def handle_approve_report(update: Update, context: ContextTypes.DEFAULT_TY
     except Exception as e:
         logger.error(f"Ошибка при подтверждении отчёта: {e}")
         await query.edit_message_text("❌ Ошибка при подтверждении отчёта")
+
+async def handle_approve_edited_report(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработка подтверждения отредактированного отчёта администратором"""
+    query = update.callback_query
+    await query.answer()
+    
+    callback_data = query.data
+    if not callback_data.startswith("approve_edited_report:"):
+        return
+    
+    report_id = int(callback_data.split(":")[1])
+    
+    # Получаем отредактированные данные из контекста
+    edited_text = context.user_data.get('edited_report_text', '')
+    edited_photo_id = context.user_data.get('edited_report_photo_id')
+    report_info = context.user_data.get('editing_report_info', {})
+    
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor(dictionary=True)
+        
+        # Обновляем отчёт с отредактированными данными
+        cursor.execute("""
+            UPDATE reports 
+            SET report_text = %s, photo_file_id = %s, sent = TRUE 
+            WHERE id = %s
+        """, (edited_text, edited_photo_id, report_id))
+        conn.commit()
+        
+        # Получаем полную информацию об отчёте для отправки родителю
+        cursor.execute("""
+            SELECT r.id, r.schedule_id, r.report_text, r.photo_file_id,
+                   s.date, s.time, s.student_id,
+                   sub.name as subject_name,
+                   st.description as student_name, st.parent_id,
+                   t.description as tutor_name
+            FROM reports r
+            JOIN schedule s ON r.schedule_id = s.id
+            JOIN subject sub ON s.subject_id = sub.id
+            JOIN telegram_id st ON s.student_id = st.id
+            JOIN telegram_id t ON s.tutor_id = t.id
+            WHERE r.id = %s
+        """, (report_id,))
+        
+        updated_report_info = cursor.fetchone()
+        
+        # Обновляем сообщение с предпросмотром
+        await query.edit_message_text(
+            query.message.text + "\n\n✅ <b>Отчёт отредактирован и подтверждён</b>",
+            parse_mode='HTML'
+        )
+        
+        # Отправляем отредактированный отчёт родителю, если он есть
+        if updated_report_info and updated_report_info.get('parent_id'):
+            try:
+                # Ищем родителя по parent_id
+                parent_cursor = conn.cursor(dictionary=True)
+                parent_cursor.execute(
+                    "SELECT chat_id, timezone FROM telegram_id WHERE id = %s OR telegram_id = %s LIMIT 1",
+                    (updated_report_info['parent_id'], updated_report_info['parent_id'])
+                )
+                parent_info = parent_cursor.fetchone()
+                parent_cursor.close()
+                
+                if parent_info and parent_info.get('chat_id'):
+                    # Форматируем дату и время
+                    if isinstance(updated_report_info['date'], datetime):
+                        date_str = updated_report_info['date'].strftime('%d.%m.%Y')
+                    elif isinstance(updated_report_info['date'], str):
+                        try:
+                            date_obj = datetime.strptime(updated_report_info['date'], '%Y-%m-%d')
+                            date_str = date_obj.strftime('%d.%m.%Y')
+                        except:
+                            date_str = str(updated_report_info['date'])
+                    else:
+                        date_str = str(updated_report_info['date'])
+                    
+                    if isinstance(updated_report_info['time'], time):
+                        time_str = updated_report_info['time'].strftime('%H:%M')
+                    elif isinstance(updated_report_info['time'], str):
+                        time_str = updated_report_info['time'][:5]
+                    else:
+                        time_str = str(updated_report_info['time'])[:5] if len(str(updated_report_info['time'])) >= 5 else str(updated_report_info['time'])
+                    
+                    parent_message = (
+                        f"📊 <b>Отчёт о занятии вашего ребёнка</b>\n\n"
+                        f"📚 Предмет: {updated_report_info['subject_name']}\n"
+                        f"👨‍🏫 Репетитор: {updated_report_info['tutor_name']}\n"
+                        f"👤 Ученик: {updated_report_info['student_name']}\n"
+                        f"🕐 Дата: {date_str} {time_str}\n\n"
+                        f"<b>Отчёт:</b>\n{updated_report_info['report_text'] if updated_report_info['report_text'] else '(без текста)'}"
+                    )
+                    
+                    # Отправляем отчёт родителю
+                    if updated_report_info.get('photo_file_id'):
+                        await context.bot.send_photo(
+                            chat_id=parent_info['chat_id'],
+                            photo=updated_report_info['photo_file_id'],
+                            caption=parent_message,
+                            parse_mode='HTML'
+                        )
+                    else:
+                        await context.bot.send_message(
+                            chat_id=parent_info['chat_id'],
+                            text=parent_message,
+                            parse_mode='HTML'
+                        )
+                    
+                    logger.info(f"Отредактированный отчёт отправлен родителю {parent_info['chat_id']}")
+            except Exception as e:
+                logger.error(f"Ошибка при отправке отредактированного отчёта родителю: {e}")
+        
+        # Очищаем данные редактирования из контекста
+        context.user_data.pop('editing_report_id', None)
+        context.user_data.pop('editing_report_info', None)
+        context.user_data.pop('edited_report_text', None)
+        context.user_data.pop('edited_report_photo_id', None)
+        
+        cursor.close()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Ошибка при подтверждении отредактированного отчёта: {e}")
+        await query.edit_message_text("❌ Ошибка при подтверждении отредактированного отчёта")
+
+async def handle_cancel_report(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработка отмены отчёта администратором"""
+    query = update.callback_query
+    await query.answer()
+    
+    callback_data = query.data
+    if not callback_data.startswith("cancel_report:"):
+        return
+    
+    report_id = int(callback_data.split(":")[1])
+    
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor(dictionary=True)
+        
+        # Проверяем, существует ли отчёт
+        cursor.execute("SELECT id, sent FROM reports WHERE id = %s", (report_id,))
+        report = cursor.fetchone()
+        
+        if not report:
+            await query.edit_message_text("❌ Отчёт не найден")
+            cursor.close()
+            conn.close()
+            return
+        
+        if report['sent']:
+            await query.edit_message_text("❌ Отчёт уже был отправлен")
+            cursor.close()
+            conn.close()
+            return
+        
+        # Удаляем отчёт из базы данных
+        cursor.execute("DELETE FROM reports WHERE id = %s", (report_id,))
+        conn.commit()
+        
+        # Обновляем сообщение
+        await query.edit_message_text(
+            query.message.text + "\n\n❌ <b>Отменено администратором</b>",
+            parse_mode='HTML'
+        )
+        
+        logger.info(f"Отчёт {report_id} отменён администратором")
+        
+        cursor.close()
+        conn.close()
+        
+    except Exception as e:
+        logger.error(f"Ошибка при отмене отчёта: {e}")
+        await query.edit_message_text("❌ Ошибка при отмене отчёта")
+
+async def handle_edit_report(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработка начала редактирования отчёта администратором"""
+    query = update.callback_query
+    await query.answer()
+    
+    callback_data = query.data
+    if not callback_data.startswith("edit_report:"):
+        return
+    
+    report_id = int(callback_data.split(":")[1])
+    
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor(dictionary=True)
+        
+        # Получаем информацию об отчёте
+        cursor.execute("""
+            SELECT r.id, r.schedule_id, r.report_text, r.photo_file_id, r.sent,
+                   s.date, s.time,
+                   sub.name as subject_name,
+                   st.description as student_name,
+                   t.description as tutor_name
+            FROM reports r
+            JOIN schedule s ON r.schedule_id = s.id
+            JOIN subject sub ON s.subject_id = sub.id
+            JOIN telegram_id st ON s.student_id = st.id
+            JOIN telegram_id t ON s.tutor_id = t.id
+            WHERE r.id = %s
+        """, (report_id,))
+        
+        report_info = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if not report_info:
+            await query.edit_message_text("❌ Отчёт не найден")
+            return
+        
+        if report_info['sent']:
+            await query.edit_message_text("❌ Отчёт уже был отправлен")
+            return
+        
+        # Сохраняем информацию об отчёте в контексте для редактирования
+        context.user_data['editing_report_id'] = report_id
+        context.user_data['editing_report_info'] = report_info
+        
+        # Форматируем дату и время
+        if isinstance(report_info['date'], datetime):
+            date_str = report_info['date'].strftime('%d.%m.%Y')
+        else:
+            date_str = str(report_info['date'])
+        
+        if isinstance(report_info['time'], time):
+            time_str = report_info['time'].strftime('%H:%M')
+        else:
+            time_str = str(report_info['time'])[:5]
+        
+        # Отправляем сообщение с инструкцией
+        edit_message = (
+            f"✏️ <b>Редактирование отчёта</b>\n\n"
+            f"📚 Предмет: {report_info['subject_name']}\n"
+            f"👨‍🏫 Репетитор: {report_info['tutor_name']}\n"
+            f"👤 Ученик: {report_info['student_name']}\n"
+            f"🕐 Дата: {date_str} {time_str}\n\n"
+            f"<b>Текущий отчёт:</b>\n{report_info['report_text'] if report_info['report_text'] else '(без текста)'}\n\n"
+            f"📝 <b>Отправьте новый текст отчёта</b> (можно с фото).\n"
+            f"Для отмены редактирования отправьте /cancel"
+        )
+        
+        await query.edit_message_text(edit_message, parse_mode='HTML')
+        
+        logger.info(f"Начато редактирование отчёта {report_id} администратором {query.from_user.id}")
+        
+    except Exception as e:
+        logger.error(f"Ошибка при начале редактирования отчёта: {e}")
+        await query.edit_message_text("❌ Ошибка при начале редактирования отчёта")
+
+async def handle_edited_report_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработка отредактированного текста отчёта"""
+    if 'editing_report_id' not in context.user_data:
+        return
+    
+    report_id = context.user_data['editing_report_id']
+    report_info = context.user_data.get('editing_report_info', {})
+    edited_text = update.message.text or ''
+    
+    # Сохраняем отредактированный текст
+    context.user_data['edited_report_text'] = edited_text
+    
+    # Форматируем дату и время
+    if isinstance(report_info.get('date'), datetime):
+        date_str = report_info['date'].strftime('%d.%m.%Y')
+    else:
+        date_str = str(report_info.get('date', ''))
+    
+    if isinstance(report_info.get('time'), time):
+        time_str = report_info['time'].strftime('%H:%M')
+    else:
+        time_str = str(report_info.get('time', ''))[:5]
+    
+    # Показываем предпросмотр и кнопку подтверждения
+    preview_message = (
+        f"✏️ <b>Предпросмотр отредактированного отчёта</b>\n\n"
+        f"📚 Предмет: {report_info.get('subject_name', '')}\n"
+        f"👨‍🏫 Репетитор: {report_info.get('tutor_name', '')}\n"
+        f"👤 Ученик: {report_info.get('student_name', '')}\n"
+        f"🕐 Дата: {date_str} {time_str}\n\n"
+        f"<b>Отчёт:</b>\n{edited_text if edited_text else '(без текста)'}\n\n"
+        f"✅ Нажмите кнопку ниже, чтобы подтвердить редактирование"
+    )
+    
+    keyboard = [
+        [InlineKeyboardButton("✅ Подтвердить редактирование", callback_data=f"approve_edited_report:{report_id}")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await update.message.reply_text(preview_message, parse_mode='HTML', reply_markup=reply_markup)
+    logger.info(f"Получен отредактированный текст для отчёта {report_id}")
+
+async def handle_edited_report_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработка отредактированного фото отчёта"""
+    if 'editing_report_id' not in context.user_data:
+        return
+    
+    report_id = context.user_data['editing_report_id']
+    report_info = context.user_data.get('editing_report_info', {})
+    photo_file_id = update.message.photo[-1].file_id
+    
+    # Сохраняем отредактированное фото
+    context.user_data['edited_report_photo_id'] = photo_file_id
+    
+    # Получаем текст из подписи, если есть
+    caption = update.message.caption or ''
+    if caption:
+        context.user_data['edited_report_text'] = caption
+    
+    # Форматируем дату и время
+    if isinstance(report_info.get('date'), datetime):
+        date_str = report_info['date'].strftime('%d.%m.%Y')
+    else:
+        date_str = str(report_info.get('date', ''))
+    
+    if isinstance(report_info.get('time'), time):
+        time_str = report_info['time'].strftime('%H:%M')
+    else:
+        time_str = str(report_info.get('time', ''))[:5]
+    
+    edited_text = context.user_data.get('edited_report_text', report_info.get('report_text', ''))
+    
+    # Показываем предпросмотр с фото и кнопку подтверждения
+    preview_message = (
+        f"✏️ <b>Предпросмотр отредактированного отчёта</b>\n\n"
+        f"📚 Предмет: {report_info.get('subject_name', '')}\n"
+        f"👨‍🏫 Репетитор: {report_info.get('tutor_name', '')}\n"
+        f"👤 Ученик: {report_info.get('student_name', '')}\n"
+        f"🕐 Дата: {date_str} {time_str}\n\n"
+        f"<b>Отчёт:</b>\n{edited_text if edited_text else '(без текста)'}\n\n"
+        f"✅ Нажмите кнопку ниже, чтобы подтвердить редактирование"
+    )
+    
+    keyboard = [
+        [InlineKeyboardButton("✅ Подтвердить редактирование", callback_data=f"approve_edited_report:{report_id}")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await update.message.reply_photo(
+        photo=photo_file_id,
+        caption=preview_message,
+        parse_mode='HTML',
+        reply_markup=reply_markup
+    )
+    logger.info(f"Получено отредактированное фото для отчёта {report_id}")
 
 async def check_reports_reminders(application):
     """Проверка и отправка напоминаний о необходимости отправить отчёт"""
@@ -1272,6 +1633,26 @@ async def check_schedules(application):
             logger.error(f"Ошибка при проверке расписания: {e}")
             await asyncio.sleep(60)
 
+async def handle_cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Обработка команды /cancel для отмены редактирования или создания отчёта"""
+    if 'editing_report_id' in context.user_data:
+        # Отменяем редактирование отчёта
+        context.user_data.pop('editing_report_id', None)
+        context.user_data.pop('editing_report_info', None)
+        context.user_data.pop('edited_report_text', None)
+        context.user_data.pop('edited_report_photo_id', None)
+        await update.message.reply_text("❌ Редактирование отчёта отменено")
+        logger.info(f"Редактирование отчёта отменено пользователем {update.effective_user.id}")
+    elif 'report_schedule_id' in context.user_data:
+        # Отменяем создание отчёта
+        context.user_data.pop('report_schedule_id', None)
+        context.user_data.pop('report_text', None)
+        context.user_data.pop('report_photo_id', None)
+        await update.message.reply_text("❌ Создание отчёта отменено")
+        logger.info(f"Создание отчёта отменено пользователем {update.effective_user.id}")
+    else:
+        await update.message.reply_text("❌ Нет активных операций для отмены")
+
 async def post_init(application: Application) -> None:
     """Запуск фоновых задач после инициализации бота"""
     # Запускаем задачу проверки расписания
@@ -1289,6 +1670,7 @@ def main():
     
     # Добавляем обработчики команд
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("cancel", handle_cancel_command))
     # Обработчик фото должен быть перед обработчиком текста, чтобы обрабатывать фото с подписью
     application.add_handler(MessageHandler(filters.PHOTO, handle_report_photo))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
@@ -1300,6 +1682,9 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_report_callback, pattern="^report:"))
     application.add_handler(CallbackQueryHandler(handle_report_callback_buttons, pattern="^(add_photo|send_report)::~"))
     application.add_handler(CallbackQueryHandler(handle_approve_report, pattern="^approve_report:"))
+    application.add_handler(CallbackQueryHandler(handle_cancel_report, pattern="^cancel_report:"))
+    application.add_handler(CallbackQueryHandler(handle_edit_report, pattern="^edit_report:"))
+    application.add_handler(CallbackQueryHandler(handle_approve_edited_report, pattern="^approve_edited_report:"))
     
     # Запускаем бота
     logger.info("Бот запускается...")
