@@ -4,9 +4,17 @@ echo "🚀 Настройка проекта Мой учитель"
 
 # Проверяем наличие .env файла
 if [ ! -f .env ]; then
-    echo "📝 Создаем .env файл из примера..."
-    cp .env.example .env
-    echo "⚠️  Пожалуйста, отредактируйте .env файл и добавьте ваши настройки"
+    echo "❌ Файл .env не найден!"
+    echo "📝 Создайте файл .env в корне проекта со следующими переменными:"
+    echo "   MYSQL_HOST=localhost"
+    echo "   MYSQL_USER=root"
+    echo "   MYSQL_PASSWORD=your_password"
+    echo "   MYSQL_DATABASE=admin_panel"
+    echo "   SECRET_KEY=your_secret_key"
+    echo "   TELEGRAM_BOT_TOKEN=your_bot_token"
+    echo "   WEBAPP_URL=http://localhost:5000/schedule"
+    echo "   LOG_GROUP_ID=your_log_group_id"
+    echo "   REPORTS_CHAT_ID=your_reports_chat_id"
     exit 1
 fi
 
@@ -27,17 +35,9 @@ docker-compose up -d --build
 echo "⏳ Ожидаем запуска MySQL..."
 sleep 10
 
-# Применяем миграции
-echo "🗄️ Применяем миграции базы данных..."
-docker exec my_teacher_mysql mysql -uroot -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} < init_db.sql
-
-# Применяем миграцию часовых поясов
-echo "🌍 Применяем миграцию часовых поясов..."
-docker exec my_teacher_mysql mysql -uroot -p${MYSQL_PASSWORD} ${MYSQL_DATABASE} < migrate_timezones.sql
-
-# Сбрасываем пароль администратора
-echo "🔐 Устанавливаем пароль администратора..."
-docker exec my_teacher_web python /app/scripts/fix_admin_password.py admin
+# Миграции применяются автоматически через docker-entrypoint-initdb.d
+echo "🗄️ Миграции базы данных применяются автоматически при первом запуске MySQL"
+echo "   Файлы: init_db.sql, migrate_lesson_types.sql, migrate_reminders.sql, migrate_reports.sql"
 
 echo "✅ Установка завершена!"
 echo ""

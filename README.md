@@ -37,10 +37,9 @@
 ├── bot.py                     # Telegram бот с поддержкой часовых поясов
 ├── docker-compose.yml         # Конфигурация Docker
 ├── init_db.sql               # SQL для инициализации БД
-├── migrate_timezones.sql     # Миграция часовых поясов
+├── migrate_*.sql             # SQL миграции (lesson_types, reminders, reports)
 ├── scripts/                  # Вспомогательные скрипты
-│   ├── setup.sh              # Скрипт установки
-│   └── fix_admin_password.py # Сброс пароля админа
+│   └── setup.sh              # Скрипт установки (для локальной разработки)
 └── templates/                # HTML шаблоны
 ```
 
