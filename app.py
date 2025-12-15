@@ -242,9 +242,9 @@ def run_report_test():
             test_time = datetime.strptime(test_time_str, '%H:%M').time().replace(second=0, microsecond=0)
         else:
             # Fallback: создаем тестовое занятие на 2 минуты вперёд
-        now = datetime.now()
-        test_date = now.date()
-        test_time = (now + timedelta(minutes=2)).time().replace(second=0, microsecond=0)
+            now = datetime.now(SYSTEM_TIMEZONE)
+            test_date = now.date()
+            test_time = (now + timedelta(minutes=2)).time().replace(second=0, microsecond=0)
         
         # Создаем занятие с длительностью 2 минуты
         test_schedule = Schedule(
