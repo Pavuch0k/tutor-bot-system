@@ -573,21 +573,51 @@ def update_schedule(id):
         tutor_id = request.form.get('tutor_id')
         student_id = request.form.get('student_id')
         date = request.form.get('date')
-        time = request.form.get('time')
+        time_str = request.form.get('time')
         subject_id = request.form.get('subject_id')
+        apply_to = request.form.get('apply_to', 'single')  # single | future_same_weekday
         
-        if not all([tutor_id, student_id, date, time, subject_id]):
+        if not all([tutor_id, student_id, date, time_str, subject_id]):
             return jsonify({'success': False, 'error': 'Пожалуйста, заполните все поля'})
         
-        # Преобразуем дату
+        # Преобразуем дату и время
         lesson_date = datetime.strptime(date, '%Y-%m-%d').date()
+        new_time = datetime.strptime(time_str, '%H:%M').time()
         
+        # Массовое изменение только времени/предмета для всех будущих занятий в этот день недели
+        if apply_to == 'future_same_weekday':
+            base_date = schedule.date
+            base_weekday = base_date.weekday()
+            base_tutor_id = schedule.tutor_id
+            base_student_id = schedule.student_id
+            
+            # Находим все будущие занятия этой пары, начиная с текущей даты
+            future_schedules = Schedule.query.filter(
+                Schedule.tutor_id == base_tutor_id,
+                Schedule.student_id == base_student_id,
+                Schedule.date >= base_date
+            ).all()
+            
+            updated_count = 0
+            for s in future_schedules:
+                if s.date.weekday() == base_weekday:
+                    s.subject_id = subject_id
+                    s.time = new_time
+                    updated_count += 1
+            
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': f'Обновлено занятий: {updated_count}'
+            })
+        
+        # Обычное редактирование только одного занятия
         # Проверяем, нет ли конфликта с другим занятием (кроме текущего)
         existing_schedule = Schedule.query.filter(
             Schedule.id != id,
             Schedule.tutor_id == tutor_id,
             Schedule.date == lesson_date,
-            Schedule.time == time
+            Schedule.time == new_time
         ).first()
         
         if existing_schedule:
@@ -597,7 +627,7 @@ def update_schedule(id):
         schedule.tutor_id = tutor_id
         schedule.student_id = student_id
         schedule.date = lesson_date
-        schedule.time = time
+        schedule.time = new_time
         schedule.subject_id = subject_id
         
         db.session.commit()
@@ -612,9 +642,35 @@ def update_schedule(id):
 def delete_schedule(id):
     try:
         schedule = Schedule.query.get_or_404(id)
-        db.session.delete(schedule)
-        db.session.commit()
-        return jsonify({'success': True})
+        apply_to = request.args.get('apply_to', 'single')  # single | future_same_weekday
+
+        if apply_to == 'future_same_weekday':
+            base_date = schedule.date
+            base_weekday = base_date.weekday()
+            base_tutor_id = schedule.tutor_id
+            base_student_id = schedule.student_id
+            base_subject_id = schedule.subject_id
+
+            # Находим все будущие занятия этой пары и предмета начиная с текущей даты
+            future_schedules = Schedule.query.filter(
+                Schedule.tutor_id == base_tutor_id,
+                Schedule.student_id == base_student_id,
+                Schedule.subject_id == base_subject_id,
+                Schedule.date >= base_date
+            ).all()
+
+            deleted_count = 0
+            for s in future_schedules:
+                if s.date.weekday() == base_weekday:
+                    db.session.delete(s)
+                    deleted_count += 1
+
+            db.session.commit()
+            return jsonify({'success': True, 'deleted': deleted_count})
+        else:
+            db.session.delete(schedule)
+            db.session.commit()
+            return jsonify({'success': True, 'deleted': 1})
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)})

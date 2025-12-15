@@ -505,6 +505,19 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Массовое редактирование серии занятий (показывается только при редактировании) -->
+                        <div class="mb-3" id="bulk_action_group" style="display: none;">
+                            <label for="apply_to" class="form-label">Применить изменения к</label>
+                            <select class="form-select" id="apply_to" name="apply_to">
+                                <option value="single">Только этому занятию</option>
+                                <option value="future_same_weekday">Этому и всем последующим в этот день недели</option>
+                            </select>
+                            <small class="text-muted">
+                                Массовые изменения применяют новый предмет и время ко всем будущим занятиям этой пары в тот же день недели.<br>
+                                Даты занятий при этом не изменяются.
+                            </small>
+                        </div>
                         
                         <div class="d-flex justify-content-between">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
@@ -779,6 +792,18 @@
                 if (submitBtn) {
                     submitBtn.textContent = 'Сохранить изменения';
                 }
+
+                // Показать настройки массового редактирования
+                const bulkGroup = document.getElementById('bulk_action_group');
+                if (bulkGroup) {
+                    bulkGroup.style.display = 'block';
+                }
+
+                // По умолчанию редактируем только одно занятие
+                const applySelect = document.getElementById('apply_to');
+                if (applySelect) {
+                    applySelect.value = 'single';
+                }
             }, 100);
             
             // Открыть модальное окно
@@ -792,8 +817,25 @@
         }
 
         window.deleteSchedule = function(scheduleId) {
-            if (confirm('Вы уверены, что хотите удалить это занятие?')) {
-                fetch(`/delete_schedule/${scheduleId}`)
+            // Находим занятие по ID, чтобы знать пару и дату
+            const schedule = currentSchedules.find(s => s.id === scheduleId);
+            if (!schedule) {
+                alert('Занятие не найдено');
+                return;
+            }
+
+            const onlyThis = confirm(
+                'Удалить только это занятие?\n\n' +
+                'Нажмите «Отмена», чтобы удалить это и все последующие занятия этой пары в этот день недели.'
+            );
+
+            let url = `/delete_schedule/${scheduleId}`;
+            if (!onlyThis) {
+                url += '?apply_to=future_same_weekday';
+            }
+
+            if (confirm('Вы уверены, что хотите выполнить удаление?')) {
+                fetch(url)
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
@@ -984,7 +1026,13 @@
             document.getElementById('repeat_count').value = '';
             document.getElementById('end_date').value = '';
             document.getElementById('end_date_info').textContent = 'Дата последнего занятия';
-            
+
+            // Скрываем блок массового редактирования (он только для режима редактирования)
+            const bulkGroup = document.getElementById('bulk_action_group');
+            if (bulkGroup) {
+                bulkGroup.style.display = 'none';
+            }
+
             addLessonModal.show();
         }
 
