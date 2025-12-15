@@ -465,6 +465,47 @@
                                                             <textarea class="form-control" id="edit_additional_description{{ item.id }}" 
                                                                       name="additional_description" rows="3" placeholder="Дополнительная информация">{{ item.additional_description or '' }}</textarea>
                                                         </div>
+                                                        
+                                                        <!-- Настройки напоминаний для учеников -->
+                                                        <div class="mb-3 card" style="background-color: #2d2d2d; border-color: #444; display: {% if item.status == 'ученик' %}block{% else %}none{% endif %};" id="edit_notify_settings{{ item.id }}">
+                                                            <div class="card-body">
+                                                                <h6 class="card-title text-primary">🔔 Настройки напоминаний</h6>
+                                                                
+                                                                <div class="row">
+                                                                    <div class="col-md-6">
+                                                                        <label class="text-info"><i class="bi bi-person-fill"></i> Для ученика:</label>
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input" type="checkbox" id="edit_student_notify_day{{ item.id }}" name="student_notify_day" value="true" {% if item.student_notify_day %}checked{% endif %}>
+                                                                            <label class="form-check-label" for="edit_student_notify_day{{ item.id }}">За день</label>
+                                                                        </div>
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input" type="checkbox" id="edit_student_notify_hour{{ item.id }}" name="student_notify_hour" value="true" {% if item.student_notify_hour %}checked{% endif %}>
+                                                                            <label class="form-check-label" for="edit_student_notify_hour{{ item.id }}">За час</label>
+                                                                        </div>
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input" type="checkbox" id="edit_student_notify_10min{{ item.id }}" name="student_notify_10min" value="true" {% if item.student_notify_10min %}checked{% endif %}>
+                                                                            <label class="form-check-label" for="edit_student_notify_10min{{ item.id }}">За 10 минут</label>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-md-6">
+                                                                        <label class="text-warning"><i class="bi bi-person-badge"></i> Для родителя:</label>
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input" type="checkbox" id="edit_parent_notify_day{{ item.id }}" name="parent_notify_day" value="true" {% if item.parent_notify_day %}checked{% endif %}>
+                                                                            <label class="form-check-label" for="edit_parent_notify_day{{ item.id }}">За день</label>
+                                                                        </div>
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input" type="checkbox" id="edit_parent_notify_hour{{ item.id }}" name="parent_notify_hour" value="true" {% if item.parent_notify_hour %}checked{% endif %}>
+                                                                            <label class="form-check-label" for="edit_parent_notify_hour{{ item.id }}">За час</label>
+                                                                        </div>
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input" type="checkbox" id="edit_parent_notify_10min{{ item.id }}" name="parent_notify_10min" value="true" {% if item.parent_notify_10min %}checked{% endif %}>
+                                                                            <label class="form-check-label" for="edit_parent_notify_10min{{ item.id }}">За 10 минут</label>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
                                                         <button type="submit" class="btn btn-primary">Сохранить</button>
                                                     </form>
                                                 </div>
@@ -502,12 +543,19 @@
             const statusSelect = document.getElementById(`edit_status${userId}`);
             const parentField = document.getElementById(`edit_parent_field${userId}`);
             const parentIdInput = document.getElementById(`edit_parent_id${userId}`);
+            const notifySettings = document.getElementById(`edit_notify_settings${userId}`);
 
             if (statusSelect.value === 'ученик') {
                 parentField.style.display = 'block';
+                if (notifySettings) {
+                    notifySettings.style.display = 'block';
+                }
             } else {
                 parentField.style.display = 'none';
                 parentIdInput.value = '';
+                if (notifySettings) {
+                    notifySettings.style.display = 'none';
+                }
             }
         }
 

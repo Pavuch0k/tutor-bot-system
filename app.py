@@ -355,6 +355,15 @@ def edit_telegram_id(id):
     telegram_id_obj.parent_id = new_parent_id
     telegram_id_obj.additional_description = request.form.get('additional_description')
     
+    # Обновляем настройки напоминаний (только для учеников)
+    if request.form.get('status') == 'ученик':
+        telegram_id_obj.student_notify_day = request.form.get('student_notify_day') == 'true'
+        telegram_id_obj.student_notify_hour = request.form.get('student_notify_hour') == 'true'
+        telegram_id_obj.student_notify_10min = request.form.get('student_notify_10min') == 'true'
+        telegram_id_obj.parent_notify_day = request.form.get('parent_notify_day') == 'true'
+        telegram_id_obj.parent_notify_hour = request.form.get('parent_notify_hour') == 'true'
+        telegram_id_obj.parent_notify_10min = request.form.get('parent_notify_10min') == 'true'
+    
     db.session.commit()
     flash('Запись успешно обновлена')
     return redirect(url_for('admin_users'))
