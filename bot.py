@@ -1456,6 +1456,7 @@ async def send_reminder(bot, chat_id, schedule_data, user_status, time_before, u
         duration_text = f"{duration} мин." if duration else "60 мин."
         trial_text = "🎯 ПРОБНОЕ " if is_trial else ""
         
+        # Основное сообщение пользователю
         message = f"{emoji} Напоминание: {trial_text}занятие {time_text}!\n\n"
         message += f"📚 Предмет: {schedule_data['subject_name']}\n"
         message += f"🕐 Время: {time_display} ({duration_text})\n"
@@ -1467,6 +1468,49 @@ async def send_reminder(bot, chat_id, schedule_data, user_status, time_before, u
         
         await bot.send_message(chat_id=chat_id, text=message)
         logger.info(f"Отправлено напоминание пользователю {chat_id}")
+
+        # Дополнительно отправляем лог администратору (в лог-группу)
+        if LOG_GROUP_ID:
+            # Определяем текст статуса получателя для лога
+            if user_status == 'репетитор':
+                recipient_role = "репетитор"
+                recipient_name = schedule_data.get('tutor_name', '')
+            elif user_status == 'родитель':
+                recipient_role = "родитель"
+                # Имя родителя в расписании нет, поэтому укажем ученика
+                recipient_name = schedule_data.get('student_name', '')
+            else:
+                recipient_role = "ученик"
+                recipient_name = schedule_data.get('student_name', '')
+
+            if time_before == "day":
+                reminder_kind = "за день"
+            elif time_before == "hour":
+                reminder_kind = "за час"
+            else:
+                reminder_kind = "за 10 минут"
+
+            admin_message = (
+                "📣 <b>Лог напоминания о занятии</b>\n\n"
+                f"👥 <b>Получатель:</b> {recipient_role} — {recipient_name}\n"
+                f"📚 <b>Предмет:</b> {schedule_data.get('subject_name', '')}\n"
+                f"🕐 <b>Время занятия:</b> {time_display} ({duration_text})\n"
+                f"⏰ <b>Тип напоминания:</b> {reminder_kind}\n"
+            )
+
+            try:
+                await bot.send_message(
+                    chat_id=LOG_GROUP_ID,
+                    text=admin_message,
+                    parse_mode='HTML'
+                )
+                logger.info(
+                    f"Отправлен лог напоминания в LOG_GROUP_ID={LOG_GROUP_ID} "
+                    f"(расписание {schedule_data.get('id')}, получатель {recipient_role})"
+                )
+            except Exception as log_err:
+                logger.error(f"Ошибка при отправке лога напоминания администратору: {log_err}")
+
         return True
     except Exception as e:
         logger.error(f"Ошибка при отправке напоминания: {e}")
