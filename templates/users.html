@@ -313,13 +313,13 @@
                                     <textarea class="form-control" id="additional_description" name="additional_description" rows="3" placeholder="Дополнительная информация"></textarea>
                                 </div>
                                 
-                                <!-- Настройки напоминаний для учеников и родителей -->
+                                <!-- Настройки напоминаний для учеников, родителей и репетиторов -->
                                 <div class="mb-3 card" style="background-color: #2d2d2d; border-color: #444; display: none;" id="notify_settings">
                                     <div class="card-body">
                                         <h6 class="card-title text-primary">🔔 Настройки напоминаний</h6>
-                                        
+
                                         <div class="row">
-                                            <div class="col-md-6">
+                                            <div class="col-md-4">
                                                 <label class="text-info"><i class="bi bi-person-fill"></i> Для ученика:</label>
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="checkbox" id="student_notify_day" name="student_notify_day" value="true" checked>
@@ -334,7 +334,7 @@
                                                     <label class="form-check-label" for="student_notify_10min">За 10 минут</label>
                                                 </div>
                                             </div>
-                                            <div class="col-md-6">
+                                            <div class="col-md-4">
                                                 <label class="text-warning"><i class="bi bi-person-badge"></i> Для родителя:</label>
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="checkbox" id="parent_notify_day" name="parent_notify_day" value="true" checked>
@@ -347,6 +347,21 @@
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="checkbox" id="parent_notify_10min" name="parent_notify_10min" value="true" checked>
                                                     <label class="form-check-label" for="parent_notify_10min">За 10 минут</label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="text-success"><i class="bi bi-mortarboard-fill"></i> Для репетитора:</label>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="tutor_notify_day" name="tutor_notify_day" value="true" checked>
+                                                    <label class="form-check-label" for="tutor_notify_day">За день</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="tutor_notify_hour" name="tutor_notify_hour" value="true" checked>
+                                                    <label class="form-check-label" for="tutor_notify_hour">За час</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="tutor_notify_10min" name="tutor_notify_10min" value="true" checked>
+                                                    <label class="form-check-label" for="tutor_notify_10min">За 10 минут</label>
                                                 </div>
                                             </div>
                                         </div>
@@ -466,13 +481,13 @@
                                                                       name="additional_description" rows="3" placeholder="Дополнительная информация">{{ item.additional_description or '' }}</textarea>
                                                         </div>
                                                         
-                                                        <!-- Настройки напоминаний для учеников -->
-                                                        <div class="mb-3 card" style="background-color: #2d2d2d; border-color: #444; display: {% if item.status == 'ученик' %}block{% else %}none{% endif %};" id="edit_notify_settings{{ item.id }}">
+                                                        <!-- Настройки напоминаний для учеников, родителей и репетиторов -->
+                                                        <div class="mb-3 card" style="background-color: #2d2d2d; border-color: #444; display: block;" id="edit_notify_settings{{ item.id }}">
                                                             <div class="card-body">
                                                                 <h6 class="card-title text-primary">🔔 Настройки напоминаний</h6>
-                                                                
+
                                                                 <div class="row">
-                                                                    <div class="col-md-6">
+                                                                    <div class="col-md-4">
                                                                         <label class="text-info"><i class="bi bi-person-fill"></i> Для ученика:</label>
                                                                         <div class="form-check">
                                                                             <input class="form-check-input" type="checkbox" id="edit_student_notify_day{{ item.id }}" name="student_notify_day" value="true" {% if item.student_notify_day %}checked{% endif %}>
@@ -487,7 +502,7 @@
                                                                             <label class="form-check-label" for="edit_student_notify_10min{{ item.id }}">За 10 минут</label>
                                                                         </div>
                                                                     </div>
-                                                                    <div class="col-md-6">
+                                                                    <div class="col-md-4">
                                                                         <label class="text-warning"><i class="bi bi-person-badge"></i> Для родителя:</label>
                                                                         <div class="form-check">
                                                                             <input class="form-check-input" type="checkbox" id="edit_parent_notify_day{{ item.id }}" name="parent_notify_day" value="true" {% if item.parent_notify_day %}checked{% endif %}>
@@ -500,6 +515,21 @@
                                                                         <div class="form-check">
                                                                             <input class="form-check-input" type="checkbox" id="edit_parent_notify_10min{{ item.id }}" name="parent_notify_10min" value="true" {% if item.parent_notify_10min %}checked{% endif %}>
                                                                             <label class="form-check-label" for="edit_parent_notify_10min{{ item.id }}">За 10 минут</label>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="col-md-4">
+                                                                        <label class="text-success"><i class="bi bi-mortarboard-fill"></i> Для репетитора:</label>
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input" type="checkbox" id="edit_tutor_notify_day{{ item.id }}" name="tutor_notify_day" value="true" {% if item.tutor_notify_day %}checked{% endif %}>
+                                                                            <label class="form-check-label" for="edit_tutor_notify_day{{ item.id }}">За день</label>
+                                                                        </div>
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input" type="checkbox" id="edit_tutor_notify_hour{{ item.id }}" name="tutor_notify_hour" value="true" {% if item.tutor_notify_hour %}checked{% endif %}>
+                                                                            <label class="form-check-label" for="edit_tutor_notify_hour{{ item.id }}">За час</label>
+                                                                        </div>
+                                                                        <div class="form-check">
+                                                                            <input class="form-check-input" type="checkbox" id="edit_tutor_notify_10min{{ item.id }}" name="tutor_notify_10min" value="true" {% if item.tutor_notify_10min %}checked{% endif %}>
+                                                                            <label class="form-check-label" for="edit_tutor_notify_10min{{ item.id }}">За 10 минут</label>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -529,8 +559,17 @@
             const parentIdInput = document.getElementById('parent_id');
             const notifySettings = document.getElementById('notify_settings');
 
+            // Показываем настройки напоминаний для всех статусов
             if (statusSelect.value === 'ученик') {
                 parentField.style.display = 'block';
+                notifySettings.style.display = 'block';
+            } else if (statusSelect.value === 'родитель') {
+                parentField.style.display = 'none';
+                parentIdInput.value = '';
+                notifySettings.style.display = 'block';
+            } else if (statusSelect.value === 'репетитор') {
+                parentField.style.display = 'none';
+                parentIdInput.value = '';
                 notifySettings.style.display = 'block';
             } else {
                 parentField.style.display = 'none';
@@ -545,8 +584,21 @@
             const parentIdInput = document.getElementById(`edit_parent_id${userId}`);
             const notifySettings = document.getElementById(`edit_notify_settings${userId}`);
 
+            // Показываем настройки напоминаний для всех статусов
             if (statusSelect.value === 'ученик') {
                 parentField.style.display = 'block';
+                if (notifySettings) {
+                    notifySettings.style.display = 'block';
+                }
+            } else if (statusSelect.value === 'родитель') {
+                parentField.style.display = 'none';
+                parentIdInput.value = '';
+                if (notifySettings) {
+                    notifySettings.style.display = 'block';
+                }
+            } else if (statusSelect.value === 'репетитор') {
+                parentField.style.display = 'none';
+                parentIdInput.value = '';
                 if (notifySettings) {
                     notifySettings.style.display = 'block';
                 }

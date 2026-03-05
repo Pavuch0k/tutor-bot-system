@@ -1535,11 +1535,12 @@ async def check_schedules(application):
             tomorrow = (now + timedelta(days=1)).date()
             
             cursor.execute("""
-                SELECT 
+                SELECT
                     s.id, s.date, s.time, s.tutor_id, s.student_id,
                     s.lesson_type, s.duration_minutes,
                     sub.name as subject_name,
                     t1.telegram_id as tutor_username, t1.description as tutor_name, t1.chat_id as tutor_chat_id, t1.timezone as tutor_timezone,
+                    t1.tutor_notify_day, t1.tutor_notify_hour, t1.tutor_notify_10min,
                     t2.telegram_id as student_username, t2.description as student_name, t2.chat_id as student_chat_id, t2.timezone as student_timezone,
                     t2.student_notify_day, t2.student_notify_hour, t2.student_notify_10min,
                     t2.parent_notify_day, t2.parent_notify_hour, t2.parent_notify_10min, t2.parent_id
@@ -1583,8 +1584,8 @@ async def check_schedules(application):
                 if timedelta(hours=20) <= time_diff <= timedelta(hours=28):
                     day_key = f"{reminder_key}_day"
                     if day_key not in sent_reminders:
-                        # Отправляем репетитору (всегда за день)
-                        if schedule['tutor_chat_id']:
+                        # Отправляем репетитору (если включено)
+                        if schedule['tutor_chat_id'] and schedule.get('tutor_notify_day', True):
                             tutor_tz = schedule.get('tutor_timezone', 'Europe/Saratov')
                             await send_reminder(application.bot, schedule['tutor_chat_id'], schedule, 'репетитор', 'day', tutor_tz)
                         # Отправляем ученику (если включено)
@@ -1613,7 +1614,10 @@ async def check_schedules(application):
                 elif timedelta(minutes=55) <= time_diff <= timedelta(minutes=65):
                     hour_key = f"{reminder_key}_hour"
                     if hour_key not in sent_reminders:
-                        # Репетитору не отправляем за час
+                        # Отправляем репетитору (если включено)
+                        if schedule['tutor_chat_id'] and schedule.get('tutor_notify_hour', True):
+                            tutor_tz = schedule.get('tutor_timezone', 'Europe/Saratov')
+                            await send_reminder(application.bot, schedule['tutor_chat_id'], schedule, 'репетитор', 'hour', tutor_tz)
                         # Отправляем ученику (если включено)
                         if schedule['student_chat_id'] and schedule.get('student_notify_hour', True):
                             student_tz = schedule.get('student_timezone', 'Europe/Saratov')
@@ -1639,8 +1643,8 @@ async def check_schedules(application):
                 elif timedelta(minutes=8) <= time_diff <= timedelta(minutes=12):
                     ten_min_key = f"{reminder_key}_10min"
                     if ten_min_key not in sent_reminders:
-                        # Отправляем репетитору (всегда за 10 минут)
-                        if schedule['tutor_chat_id']:
+                        # Отправляем репетитору (если включено)
+                        if schedule['tutor_chat_id'] and schedule.get('tutor_notify_10min', True):
                             tutor_tz = schedule.get('tutor_timezone', 'Europe/Saratov')
                             await send_reminder(application.bot, schedule['tutor_chat_id'], schedule, 'репетитор', '10min', tutor_tz)
                         # Отправляем ученику (если включено)

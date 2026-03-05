@@ -75,12 +75,18 @@ class TelegramID(db.Model):
     parent_id = db.Column(db.String(100))  # ID родителя для учеников
     additional_description = db.Column(db.Text)  # Дополнительное описание
     timezone = db.Column(db.String(50), default='+04:00')  # Часовой пояс пользователя
+    # Настройки напоминаний для учеников
     student_notify_day = db.Column(db.Boolean, default=True)
     student_notify_hour = db.Column(db.Boolean, default=True)
     student_notify_10min = db.Column(db.Boolean, default=True)
+    # Настройки напоминаний для родителей
     parent_notify_day = db.Column(db.Boolean, default=True)
     parent_notify_hour = db.Column(db.Boolean, default=True)
     parent_notify_10min = db.Column(db.Boolean, default=True)
+    # Настройки напоминаний для репетиторов
+    tutor_notify_day = db.Column(db.Boolean, default=True)
+    tutor_notify_hour = db.Column(db.Boolean, default=True)
+    tutor_notify_10min = db.Column(db.Boolean, default=True)
 
 class Pair(db.Model):
     __tablename__ = 'pair'
@@ -298,11 +304,11 @@ def add_telegram_id():
         
     if telegram_id and status:
         # Проверяем, что status имеет допустимое значение
-        if status not in ['репетитор', 'ученик']:
-            flash(f'Недопустимый статус: {status}. Используйте "репетитор" или "ученик"')
+        if status not in ['репетитор', 'ученик', 'родитель']:
+            flash(f'Недопустимый статус: {status}. Используйте "репетитор", "ученик" или "родитель"')
             app.logger.error(f'Invalid status value: {repr(status)}')
             return redirect(url_for('admin_users'))
-            
+
         try:
             # Создаем новую запись без chat_id (он будет NULL)
             new_id = TelegramID()
@@ -312,15 +318,20 @@ def add_telegram_id():
             new_id.parent_id = parent_id
             new_id.additional_description = additional_description
             new_id.timezone = timezone
-            # Настройки напоминаний
+            # Настройки напоминаний для учеников
             new_id.student_notify_day = request.form.get('student_notify_day') == 'true'
             new_id.student_notify_hour = request.form.get('student_notify_hour') == 'true'
             new_id.student_notify_10min = request.form.get('student_notify_10min') == 'true'
+            # Настройки напоминаний для родителей
             new_id.parent_notify_day = request.form.get('parent_notify_day') == 'true'
             new_id.parent_notify_hour = request.form.get('parent_notify_hour') == 'true'
             new_id.parent_notify_10min = request.form.get('parent_notify_10min') == 'true'
+            # Настройки напоминаний для репетиторов
+            new_id.tutor_notify_day = request.form.get('tutor_notify_day') == 'true'
+            new_id.tutor_notify_hour = request.form.get('tutor_notify_hour') == 'true'
+            new_id.tutor_notify_10min = request.form.get('tutor_notify_10min') == 'true'
             # chat_id не устанавливаем - будет NULL
-            
+
             db.session.add(new_id)
             db.session.commit()
             flash('ID успешно добавлен')
@@ -354,16 +365,18 @@ def edit_telegram_id(id):
     telegram_id_obj.status = request.form.get('status')
     telegram_id_obj.parent_id = new_parent_id
     telegram_id_obj.additional_description = request.form.get('additional_description')
-    
-    # Обновляем настройки напоминаний (только для учеников)
-    if request.form.get('status') == 'ученик':
-        telegram_id_obj.student_notify_day = request.form.get('student_notify_day') == 'true'
-        telegram_id_obj.student_notify_hour = request.form.get('student_notify_hour') == 'true'
-        telegram_id_obj.student_notify_10min = request.form.get('student_notify_10min') == 'true'
-        telegram_id_obj.parent_notify_day = request.form.get('parent_notify_day') == 'true'
-        telegram_id_obj.parent_notify_hour = request.form.get('parent_notify_hour') == 'true'
-        telegram_id_obj.parent_notify_10min = request.form.get('parent_notify_10min') == 'true'
-    
+
+    # Обновляем настройки напоминаний для всех статусов
+    telegram_id_obj.student_notify_day = request.form.get('student_notify_day') == 'true'
+    telegram_id_obj.student_notify_hour = request.form.get('student_notify_hour') == 'true'
+    telegram_id_obj.student_notify_10min = request.form.get('student_notify_10min') == 'true'
+    telegram_id_obj.parent_notify_day = request.form.get('parent_notify_day') == 'true'
+    telegram_id_obj.parent_notify_hour = request.form.get('parent_notify_hour') == 'true'
+    telegram_id_obj.parent_notify_10min = request.form.get('parent_notify_10min') == 'true'
+    telegram_id_obj.tutor_notify_day = request.form.get('tutor_notify_day') == 'true'
+    telegram_id_obj.tutor_notify_hour = request.form.get('tutor_notify_hour') == 'true'
+    telegram_id_obj.tutor_notify_10min = request.form.get('tutor_notify_10min') == 'true'
+
     db.session.commit()
     flash('Запись успешно обновлена')
     return redirect(url_for('admin_users'))

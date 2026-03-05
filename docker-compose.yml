@@ -16,6 +16,7 @@ services:
       - ./migrate_lesson_types.sql:/docker-entrypoint-initdb.d/02_migrate_lesson_types.sql
       - ./migrate_reminders.sql:/docker-entrypoint-initdb.d/03_migrate_reminders.sql
       - ./migrate_reports.sql:/docker-entrypoint-initdb.d/04_migrate_reports.sql
+      - ./migrate_tutor_notifications.sql:/docker-entrypoint-initdb.d/05_migrate_tutor_notifications.sql
     ports:
       - "3306:3306"
     networks:
