@@ -1,6 +1,22 @@
 version: '3.8'
 
 services:
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrate
+    container_name: my_teacher_migrate
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - teacher_network
+    restart: "no"
   mysql:
     image: mysql:8.0
     container_name: my_teacher_mysql
@@ -42,8 +58,8 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
     depends_on:
-      mysql:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     networks:
       - teacher_network
     volumes:
@@ -67,8 +83,8 @@ services:
       REPORTS_CHAT_ID: ${REPORTS_CHAT_ID}
       TZ: Asia/Dubai
     depends_on:
-      mysql:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     networks:
       - teacher_network
 

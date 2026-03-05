@@ -134,24 +134,16 @@ jobs:
           # Останавливаем контейнеры
           docker-compose down || true
 
-          # Запускаем MySQL первым для применения миграций
-          docker-compose up -d mysql
+          # Запускаем миграции и сервисы (миграции применятся автоматически)
+          echo "🚀 Запуск сервисов с автоматическим применением миграций..."
+          docker-compose up -d --build
 
-          # Ждем запуска MySQL
-          echo "⏳ Ожидание запуска MySQL..."
-          sleep 15
-
-          # Применяем миграции к существующей базе данных
-          echo "🗄️ Применение миграций..."
-          docker exec my_teacher_mysql mysql -uroot -p${{ secrets.MYSQL_PASSWORD }} admin_panel < migrate_tutor_notifications.sql || echo "Миграция tutor_notifications применена или уже существует"
-
-          # Запускаем остальные сервисы
-          docker-compose up -d web bot
-
-          # Ждем запуска сервисов
-          sleep 5
+          # Ждем завершения миграции и запуска сервисов
+          echo "⏳ Ожидание запуска..."
+          sleep 20
 
           # Показываем статус
+          echo "📊 Статус контейнеров:"
           docker-compose ps
 
   security-scan:
