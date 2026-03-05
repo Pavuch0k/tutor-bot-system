@@ -113,12 +113,12 @@ jobs:
           rm -rf /root/tutor-bot-system
           mkdir -p /root/tutor-bot-system
           cd /root/tutor-bot-system
-          
+
           # Скачиваем весь проект
           wget https://github.com/${{ github.repository }}/archive/main.tar.gz
           tar -xzf main.tar.gz --strip-components=1
           rm main.tar.gz
-          
+
           # Создаем .env файл из переменных окружения
           cat > .env << EOF
           MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
@@ -130,13 +130,27 @@ jobs:
           LOG_GROUP_ID=${{ secrets.LOG_GROUP_ID }}
           REPORTS_CHAT_ID=${{ secrets.REPORTS_CHAT_ID }}
           EOF
-          
+
           # Останавливаем контейнеры
           docker-compose down || true
-          
-          # Запускаем проект (БД сохраняется в volume, данные не теряются)
-          docker-compose up -d --build
-          
+
+          # Запускаем MySQL первым для применения миграций
+          docker-compose up -d mysql
+
+          # Ждем запуска MySQL
+          echo "⏳ Ожидание запуска MySQL..."
+          sleep 15
+
+          # Применяем миграции к существующей базе данных
+          echo "🗄️ Применение миграций..."
+          docker exec my_teacher_mysql mysql -uroot -p${{ secrets.MYSQL_PASSWORD }} admin_panel < migrate_tutor_notifications.sql || echo "Миграция tutor_notifications применена или уже существует"
+
+          # Запускаем остальные сервисы
+          docker-compose up -d web bot
+
+          # Ждем запуска сервисов
+          sleep 5
+
           # Показываем статус
           docker-compose ps
 
