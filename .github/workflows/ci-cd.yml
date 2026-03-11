@@ -150,6 +150,10 @@ jobs:
             sleep 2
           done
 
+          # Собираем все образы
+          echo "🔨 Сборка образов..."
+          docker compose build
+
           # Явно запускаем миграции и ждём завершения
           echo "📋 Применение миграций..."
           docker compose run --rm migrate
@@ -157,7 +161,7 @@ jobs:
 
           # Запускаем остальные сервисы
           echo "🚀 Запуск сервисов..."
-          docker compose up -d --build
+          docker compose up -d
 
           # Показываем статус
           echo "📊 Статус контейнеров:"
