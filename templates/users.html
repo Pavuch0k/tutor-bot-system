@@ -319,7 +319,7 @@
                                         <h6 class="card-title text-primary">🔔 Настройки напоминаний</h6>
 
                                         <div class="row">
-                                            <div class="col-md-4">
+                                            <div class="col" id="notify_student_col" style="display: none;">
                                                 <label class="text-info"><i class="bi bi-person-fill"></i> Для ученика:</label>
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="checkbox" id="student_notify_day" name="student_notify_day" value="true" checked>
@@ -334,7 +334,7 @@
                                                     <label class="form-check-label" for="student_notify_10min">За 10 минут</label>
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
+                                            <div class="col" id="notify_parent_col" style="display: none;">
                                                 <label class="text-warning"><i class="bi bi-person-badge"></i> Для родителя:</label>
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="checkbox" id="parent_notify_day" name="parent_notify_day" value="true" checked>
@@ -349,7 +349,7 @@
                                                     <label class="form-check-label" for="parent_notify_10min">За 10 минут</label>
                                                 </div>
                                             </div>
-                                            <div class="col-md-4">
+                                            <div class="col" id="notify_tutor_col" style="display: none;">
                                                 <label class="text-success"><i class="bi bi-mortarboard-fill"></i> Для репетитора:</label>
                                                 <div class="form-check">
                                                     <input class="form-check-input" type="checkbox" id="tutor_notify_day" name="tutor_notify_day" value="true" checked>
@@ -487,7 +487,7 @@
                                                                 <h6 class="card-title text-primary">🔔 Настройки напоминаний</h6>
 
                                                                 <div class="row">
-                                                                    <div class="col-md-4">
+                                                                    <div class="col" id="edit_notify_student_col{{ item.id }}" style="display: {% if item.status == 'ученик' %}block{% else %}none{% endif %};">
                                                                         <label class="text-info"><i class="bi bi-person-fill"></i> Для ученика:</label>
                                                                         <div class="form-check">
                                                                             <input class="form-check-input" type="checkbox" id="edit_student_notify_day{{ item.id }}" name="student_notify_day" value="true" {% if item.student_notify_day %}checked{% endif %}>
@@ -502,7 +502,7 @@
                                                                             <label class="form-check-label" for="edit_student_notify_10min{{ item.id }}">За 10 минут</label>
                                                                         </div>
                                                                     </div>
-                                                                    <div class="col-md-4">
+                                                                    <div class="col" id="edit_notify_parent_col{{ item.id }}" style="display: {% if item.status == 'ученик' %}block{% else %}none{% endif %};">
                                                                         <label class="text-warning"><i class="bi bi-person-badge"></i> Для родителя:</label>
                                                                         <div class="form-check">
                                                                             <input class="form-check-input" type="checkbox" id="edit_parent_notify_day{{ item.id }}" name="parent_notify_day" value="true" {% if item.parent_notify_day %}checked{% endif %}>
@@ -517,7 +517,7 @@
                                                                             <label class="form-check-label" for="edit_parent_notify_10min{{ item.id }}">За 10 минут</label>
                                                                         </div>
                                                                     </div>
-                                                                    <div class="col-md-4">
+                                                                    <div class="col" id="edit_notify_tutor_col{{ item.id }}" style="display: {% if item.status == 'репетитор' %}block{% else %}none{% endif %};">
                                                                         <label class="text-success"><i class="bi bi-mortarboard-fill"></i> Для репетитора:</label>
                                                                         <div class="form-check">
                                                                             <input class="form-check-input" type="checkbox" id="edit_tutor_notify_day{{ item.id }}" name="tutor_notify_day" value="true" {% if item.tutor_notify_day %}checked{% endif %}>
@@ -558,23 +558,30 @@
             const parentField = document.getElementById('parent_field');
             const parentIdInput = document.getElementById('parent_id');
             const notifySettings = document.getElementById('notify_settings');
+            const studentCol = document.getElementById('notify_student_col');
+            const parentCol = document.getElementById('notify_parent_col');
+            const tutorCol = document.getElementById('notify_tutor_col');
 
-            // Показываем настройки напоминаний для всех статусов
             if (statusSelect.value === 'ученик') {
                 parentField.style.display = 'block';
                 notifySettings.style.display = 'block';
-            } else if (statusSelect.value === 'родитель') {
-                parentField.style.display = 'none';
-                parentIdInput.value = '';
-                notifySettings.style.display = 'block';
+                studentCol.style.display = 'block';
+                parentCol.style.display = 'block';
+                tutorCol.style.display = 'none';
             } else if (statusSelect.value === 'репетитор') {
                 parentField.style.display = 'none';
                 parentIdInput.value = '';
                 notifySettings.style.display = 'block';
+                studentCol.style.display = 'none';
+                parentCol.style.display = 'none';
+                tutorCol.style.display = 'block';
             } else {
                 parentField.style.display = 'none';
                 parentIdInput.value = '';
                 notifySettings.style.display = 'none';
+                studentCol.style.display = 'none';
+                parentCol.style.display = 'none';
+                tutorCol.style.display = 'none';
             }
         }
 
@@ -583,31 +590,30 @@
             const parentField = document.getElementById(`edit_parent_field${userId}`);
             const parentIdInput = document.getElementById(`edit_parent_id${userId}`);
             const notifySettings = document.getElementById(`edit_notify_settings${userId}`);
+            const studentCol = document.getElementById(`edit_notify_student_col${userId}`);
+            const parentCol = document.getElementById(`edit_notify_parent_col${userId}`);
+            const tutorCol = document.getElementById(`edit_notify_tutor_col${userId}`);
 
-            // Показываем настройки напоминаний для всех статусов
             if (statusSelect.value === 'ученик') {
                 parentField.style.display = 'block';
-                if (notifySettings) {
-                    notifySettings.style.display = 'block';
-                }
-            } else if (statusSelect.value === 'родитель') {
-                parentField.style.display = 'none';
-                parentIdInput.value = '';
-                if (notifySettings) {
-                    notifySettings.style.display = 'block';
-                }
+                if (notifySettings) notifySettings.style.display = 'block';
+                if (studentCol) studentCol.style.display = 'block';
+                if (parentCol) parentCol.style.display = 'block';
+                if (tutorCol) tutorCol.style.display = 'none';
             } else if (statusSelect.value === 'репетитор') {
                 parentField.style.display = 'none';
                 parentIdInput.value = '';
-                if (notifySettings) {
-                    notifySettings.style.display = 'block';
-                }
+                if (notifySettings) notifySettings.style.display = 'block';
+                if (studentCol) studentCol.style.display = 'none';
+                if (parentCol) parentCol.style.display = 'none';
+                if (tutorCol) tutorCol.style.display = 'block';
             } else {
                 parentField.style.display = 'none';
                 parentIdInput.value = '';
-                if (notifySettings) {
-                    notifySettings.style.display = 'none';
-                }
+                if (notifySettings) notifySettings.style.display = 'none';
+                if (studentCol) studentCol.style.display = 'none';
+                if (parentCol) parentCol.style.display = 'none';
+                if (tutorCol) tutorCol.style.display = 'none';
             }
         }
 
