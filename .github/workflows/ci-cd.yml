@@ -131,20 +131,37 @@ jobs:
           REPORTS_CHAT_ID=${{ secrets.REPORTS_CHAT_ID }}
           EOF
 
-          # Останавливаем контейнеры
-          docker-compose down || true
+          # Останавливаем контейнеры (кроме mysql чтобы не терять данные)
+          docker compose down --remove-orphans || true
 
-          # Запускаем миграции и сервисы (миграции применятся автоматически)
-          echo "🚀 Запуск сервисов с автоматическим применением миграций..."
-          docker-compose up -d --build
+          # Запускаем MySQL и ждём готовности
+          echo "🗄️ Запуск MySQL..."
+          docker compose up -d mysql
+          echo "⏳ Ожидание готовности MySQL..."
+          for i in $(seq 1 30); do
+            if docker compose exec mysql mysqladmin ping -h localhost --silent 2>/dev/null; then
+              echo "✅ MySQL готов!"
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "❌ MySQL не готов после 60 секунд"
+              exit 1
+            fi
+            sleep 2
+          done
 
-          # Ждем завершения миграции и запуска сервисов
-          echo "⏳ Ожидание запуска..."
-          sleep 20
+          # Явно запускаем миграции и ждём завершения
+          echo "📋 Применение миграций..."
+          docker compose run --rm migrate
+          echo "✅ Миграции применены!"
+
+          # Запускаем остальные сервисы
+          echo "🚀 Запуск сервисов..."
+          docker compose up -d --build
 
           # Показываем статус
           echo "📊 Статус контейнеров:"
-          docker-compose ps
+          docker compose ps
 
   security-scan:
     runs-on: ubuntu-latest
