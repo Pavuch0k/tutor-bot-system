@@ -16,7 +16,7 @@ apply_migration() {
     
     if [ -f "$migration_file" ]; then
         echo "📋 Применение: $description"
-        if mysql -h"$MYSQL_HOST" -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" < "$migration_file" 2>&1; then
+        if mysql --skip-ssl -h"$MYSQL_HOST" -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" < "$migration_file" 2>&1; then
             echo "✅ Успешно: $description"
         else
             echo "⚠️ Пропущено: $description (возможно уже применено или есть изменения)"
@@ -30,7 +30,7 @@ apply_migration() {
 # Ждём доступности MySQL
 echo "⏳ Ожидание доступности MySQL..."
 for i in {1..30}; do
-    if mysql -h"$MYSQL_HOST" -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" -e "SELECT 1" > /dev/null 2>&1; then
+    if mysql --skip-ssl -h"$MYSQL_HOST" -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" -e "SELECT 1" > /dev/null 2>&1; then
         echo "✅ MySQL доступен!"
         break
     fi
